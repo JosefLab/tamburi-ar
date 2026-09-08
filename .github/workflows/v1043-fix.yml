@@ -2,88 +2,15 @@ name: Tamburi-v10-43-kataster-address
 on:
   push:
     paths:
-      - '.github/workflows/v1043-fix.yml'
+      - .github/workflows/v1043-fix.yml
 permissions:
   contents: write
 jobs:
   patch:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Patch v10.43
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text()
-          s=s.replace('v10.42','v10.43')
-          marker="""function refreshPreLocation(){"""
-          insert="""function inferStateFromAddress(text){
- const t=(text||'').toLowerCase();
- const named=[
-  [/\\bwien\\b|\\bvienna\\b/,'Wien'],
-  [/niederösterreich|niederoesterreich|lower austria/,'Niederösterreich'],
-  [/oberösterreich|oberoesterreich|upper austria/,'Oberösterreich'],
-  [/\\bburgenland\\b/,'Burgenland'],
-  [/kärnten|kaernten|carinthia/,'Kärnten'],
-  [/\\bsalzburg\\b/,'Salzburg'],
-  [/steiermark|styria/,'Steiermark'],
-  [/\\btirol\\b|\\btyrol\\b/,'Tirol'],
-  [/\\bvorarlberg\\b/,'Vorarlberg']
- ];
- for(const [rx,state] of named){ if(rx.test(t)) return state; }
- const m=t.match(/(?:^|\\D)(\\d{4})(?:\\D|$)/);
- if(!m) return '';
- const plz=Number(m[1]);
- if(plz>=1000&&plz<=1999) return 'Wien';
- if(plz>=2000&&plz<=3999) return 'Niederösterreich';
- if(plz>=4000&&plz<=4999) return 'Oberösterreich';
- if(plz>=5000&&plz<=5999) return 'Salzburg';
- if(plz>=6000&&plz<=6699) return 'Tirol';
- if(plz>=6700&&plz<=6999) return 'Vorarlberg';
- if(plz>=7000&&plz<=7999) return 'Burgenland';
- if(plz>=8000&&plz<=8999) return 'Steiermark';
- if(plz>=9000&&plz<=9999) return 'Kärnten';
- return '';
-}
-
-"""
-          if marker not in s: raise SystemExit('refresh marker not found')
-          s=s.replace(marker,insert+marker,1)
-          old="""     lastGeoAddress=address;
-     lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');
-     refreshPreLocation();"""
-          new="""     lastGeoAddress=address;
-     lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');
-     if(!stateGisUrls[lastGeoState]) lastGeoState=inferStateFromAddress(address) || lastGeoState;
-     refreshPreLocation();"""
-          if old not in s: raise SystemExit('geo assignment block not found')
-          s=s.replace(old,new,1)
-          old_input="""if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{
-  lastGeoAddress=preLocationAddress.value.trim();
-  if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;
-  if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;
-  if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;
-});"""
-          new_input="""if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{
-  lastGeoAddress=preLocationAddress.value.trim();
-  const typedState=inferStateFromAddress(lastGeoAddress);
-  if(typedState) lastGeoState=typedState;
-  refreshPreLocation();
-  if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;
-  if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;
-  if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;
-});"""
-          if old_input not in s: raise SystemExit('address input handler not found')
-          s=s.replace(old_input,new_input,1)
-          p.write_text(s)
-          PY
-      - name: Commit v10.43
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git diff --cached --quiet && exit 0
-          git commit -m "v10.43 detect state kataster from address and postal code"
-          git push
+      - name: Patch
+        run: python3 -c "import base64;exec(base64.b64decode('ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgiaW5kZXguaHRtbCIpCnM9cC5yZWFkX3RleHQoKQpzPXMucmVwbGFjZSgidjEwLjQyIiwidjEwLjQzIikKbWFya2VyPSJmdW5jdGlvbiByZWZyZXNoUHJlTG9jYXRpb24oKXsiCmluc2VydD0iIiJmdW5jdGlvbiBpbmZlclN0YXRlRnJvbUFkZHJlc3ModGV4dCl7CiBjb25zdCB0PSh0ZXh0fHwnJykudG9Mb3dlckNhc2UoKTsKIGNvbnN0IG5hbWVkPVsKICBbL1xcYndpZW5cXGJ8XFxidmllbm5hXFxiLywnV2llbiddLAogIFsvbmllZGVyw7ZzdGVycmVpY2h8bmllZGVyb2VzdGVycmVpY2h8bG93ZXIgYXVzdHJpYS8sJ05pZWRlcsO2c3RlcnJlaWNoJ10sCiAgWy9vYmVyw7ZzdGVycmVpY2h8b2Jlcm9lc3RlcnJlaWNofHVwcGVyIGF1c3RyaWEvLCdPYmVyw7ZzdGVycmVpY2gnXSwKICBbL1xcYmJ1cmdlbmxhbmRcXGIvLCdCdXJnZW5sYW5kJ10sCiAgWy9rw6RybnRlbnxrYWVybnRlbnxjYXJpbnRoaWEvLCdLw6RybnRlbiddLAogIFsvXFxic2FsemJ1cmdcXGIvLCdTYWx6YnVyZyddLAogIFsvc3RlaWVybWFya3xzdHlyaWEvLCdTdGVpZXJtYXJrJ10sCiAgWy9cXGJ0aXJvbFxcYnxcXGJ0eXJvbFxcYi8sJ1Rpcm9sJ10sCiAgWy9cXGJ2b3JhcmxiZXJnXFxiLywnVm9yYXJsYmVyZyddCiBdOwogZm9yKGNvbnN0IFtyeCxzdGF0ZV0gb2YgbmFtZWQpeyBpZihyeC50ZXN0KHQpKSByZXR1cm4gc3RhdGU7IH0KIGNvbnN0IG09dC5tYXRjaCgvKD86XnxcXEQpKFxcZHs0fSkoPzpcXER8JCkvKTsKIGlmKCFtKSByZXR1cm4gJyc7CiBjb25zdCBwbHo9TnVtYmVyKG1bMV0pOwogaWYocGx6Pj0xMDAwJiZwbHo8PTE5OTkpIHJldHVybiAnV2llbic7CiBpZihwbHo+PTIwMDAmJnBsejw9Mzk5OSkgcmV0dXJuICdOaWVkZXLDtnN0ZXJyZWljaCc7CiBpZihwbHo+PTQwMDAmJnBsejw9NDk5OSkgcmV0dXJuICdPYmVyw7ZzdGVycmVpY2gnOwogaWYocGx6Pj01MDAwJiZwbHo8PTU5OTkpIHJldHVybiAnU2FsemJ1cmcnOwogaWYocGx6Pj02MDAwJiZwbHo8PTY2OTkpIHJldHVybiAnVGlyb2wnOwogaWYocGx6Pj02NzAwJiZwbHo8PTY5OTkpIHJldHVybiAnVm9yYXJsYmVyZyc7CiBpZihwbHo+PTcwMDAmJnBsejw9Nzk5OSkgcmV0dXJuICdCdXJnZW5sYW5kJzsKIGlmKHBsej49ODAwMCYmcGx6PD04OTk5KSByZXR1cm4gJ1N0ZWllcm1hcmsnOwogaWYocGx6Pj05MDAwJiZwbHo8PTk5OTkpIHJldHVybiAnS8Okcm50ZW4nOwogcmV0dXJuICcnOwp9CgoiIiIKaWYgbWFya2VyIG5vdCBpbiBzOiByYWlzZSBTeXN0ZW1FeGl0KCJyZWZyZXNoIG1hcmtlciBub3QgZm91bmQiKQpzPXMucmVwbGFjZShtYXJrZXIsaW5zZXJ0K21hcmtlciwxKQpvbGQ9IiIiICAgICBsYXN0R2VvQWRkcmVzcz1hZGRyZXNzOwogICAgIGxhc3RHZW9TdGF0ZT1ub3JtYWxpemVHZW9TdGF0ZSgoZGF0YS5hZGRyZXNzfHx7fSkuc3RhdGUgfHwgKGRhdGEuYWRkcmVzc3x8e30pLnJlZ2lvbiB8fCAnJyk7CiAgICAgcmVmcmVzaFByZUxvY2F0aW9uKCk7IiIiCm5ldz0iIiIgICAgIGxhc3RHZW9BZGRyZXNzPWFkZHJlc3M7CiAgICAgbGFzdEdlb1N0YXRlPW5vcm1hbGl6ZUdlb1N0YXRlKChkYXRhLmFkZHJlc3N8fHt9KS5zdGF0ZSB8fCAoZGF0YS5hZGRyZXNzfHx7fSkucmVnaW9uIHx8ICcnKTsKICAgICBpZighc3RhdGVHaXNVcmxzW2xhc3RHZW9TdGF0ZV0pIGxhc3RHZW9TdGF0ZT1pbmZlclN0YXRlRnJvbUFkZHJlc3MoYWRkcmVzcykgfHwgbGFzdEdlb1N0YXRlOwogICAgIHJlZnJlc2hQcmVMb2NhdGlvbigpOyIiIgppZiBvbGQgbm90IGluIHM6IHJhaXNlIFN5c3RlbUV4aXQoImdlbyBhc3NpZ25tZW50IGJsb2NrIG5vdCBmb3VuZCIpCnM9cy5yZXBsYWNlKG9sZCxuZXcsMSkKb2xkX2lucHV0PSIiImlmKHByZUxvY2F0aW9uQWRkcmVzcykgcHJlTG9jYXRpb25BZGRyZXNzLmFkZEV2ZW50TGlzdGVuZXIoJ2lucHV0JywoKT0+ewogIGxhc3RHZW9BZGRyZXNzPXByZUxvY2F0aW9uQWRkcmVzcy52YWx1ZS50cmltKCk7CiAgaWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Bob3RvTmFtZScpKSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncGhvdG9OYW1lJykudmFsdWU9bGFzdEdlb0FkZHJlc3M7CiAgaWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Y5UmVzdWx0TmFtZScpKSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndjlSZXN1bHROYW1lJykudmFsdWU9bGFzdEdlb0FkZHJlc3M7CiAgaWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rlc2t0b3BQaG90b05hbWUnKSkgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rlc2t0b3BQaG90b05hbWUnKS52YWx1ZT1sYXN0R2VvQWRkcmVzczsKfSk7IiIiCm5ld19pbnB1dD0iIiJpZihwcmVMb2NhdGlvbkFkZHJlc3MpIHByZUxvY2F0aW9uQWRkcmVzcy5hZGRFdmVudExpc3RlbmVyKCdpbnB1dCcsKCk9PnsKICBsYXN0R2VvQWRkcmVzcz1wcmVMb2NhdGlvbkFkZHJlc3MudmFsdWUudHJpbSgpOwogIGNvbnN0IHR5cGVkU3RhdGU9aW5mZXJTdGF0ZUZyb21BZGRyZXNzKGxhc3RHZW9BZGRyZXNzKTsKICBpZih0eXBlZFN0YXRlKSBsYXN0R2VvU3RhdGU9dHlwZWRTdGF0ZTsKICByZWZyZXNoUHJlTG9jYXRpb24oKTsKICBpZihkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncGhvdG9OYW1lJykpIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdwaG90b05hbWUnKS52YWx1ZT1sYXN0R2VvQWRkcmVzczsKICBpZihkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndjlSZXN1bHROYW1lJykpIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCd2OVJlc3VsdE5hbWUnKS52YWx1ZT1sYXN0R2VvQWRkcmVzczsKICBpZihkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZGVza3RvcFBob3RvTmFtZScpKSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZGVza3RvcFBob3RvTmFtZScpLnZhbHVlPWxhc3RHZW9BZGRyZXNzOwp9KTsiIiIKaWYgb2xkX2lucHV0IG5vdCBpbiBzOiByYWlzZSBTeXN0ZW1FeGl0KCJhZGRyZXNzIGlucHV0IGhhbmRsZXIgbm90IGZvdW5kIikKcz1zLnJlcGxhY2Uob2xkX2lucHV0LG5ld19pbnB1dCwxKQpwLndyaXRlX3RleHQocykK'))"
+      - name: Commit
+        run: git config user.name github-actions-bot && git config user.email github-actions-bot@users.noreply.github.com && git add index.html && git commit -m 'v10.43 kataster from address and postal code' && git push
