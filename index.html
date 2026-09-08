@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.42</title>
+<title>Tamburi Standort AR v10.43</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.42</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.43</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1035,7 +1035,7 @@ async function saveDesktopImage(){
     ctx.fillStyle='#111';
     ctx.fillRect(0,0,W,H);
 
-    // v10.42: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
+    // v10.43: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
     const iw=importedPhoto.naturalWidth;
     const ih=importedPhoto.naturalHeight;
     if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
@@ -1107,7 +1107,7 @@ async function saveDesktopImage(){
         }
       }
 
-      // v10.42: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
+      // v10.43: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
       const stageRect=stage.getBoundingClientRect();
       const viewerRect=viewer.getBoundingClientRect();
       const drawW=viewerRect.width*mapX;
@@ -1896,6 +1896,35 @@ function normalizeGeoState(raw){
  };
  return aliases[v]||raw||'';
 }
+function inferStateFromAddress(text){
+ const t=(text||'').toLowerCase();
+ const named=[
+  [/\bwien\b|\bvienna\b/,'Wien'],
+  [/niederösterreich|niederoesterreich|lower austria/,'Niederösterreich'],
+  [/oberösterreich|oberoesterreich|upper austria/,'Oberösterreich'],
+  [/\bburgenland\b/,'Burgenland'],
+  [/kärnten|kaernten|carinthia/,'Kärnten'],
+  [/\bsalzburg\b/,'Salzburg'],
+  [/steiermark|styria/,'Steiermark'],
+  [/\btirol\b|\btyrol\b/,'Tirol'],
+  [/\bvorarlberg\b/,'Vorarlberg']
+ ];
+ for(const [rx,state] of named){ if(rx.test(t)) return state; }
+ const m=t.match(/(?:^|\D)(\d{4})(?:\D|$)/);
+ if(!m) return '';
+ const plz=Number(m[1]);
+ if(plz>=1000&&plz<=1999) return 'Wien';
+ if(plz>=2000&&plz<=3999) return 'Niederösterreich';
+ if(plz>=4000&&plz<=4999) return 'Oberösterreich';
+ if(plz>=5000&&plz<=5999) return 'Salzburg';
+ if(plz>=6000&&plz<=6699) return 'Tirol';
+ if(plz>=6700&&plz<=6999) return 'Vorarlberg';
+ if(plz>=7000&&plz<=7999) return 'Burgenland';
+ if(plz>=8000&&plz<=8999) return 'Steiermark';
+ if(plz>=9000&&plz<=9999) return 'Kärnten';
+ return '';
+}
+
 function refreshPreLocation(){
  const has=!!lastGeoPosition;
  if(preBevBtn) preBevBtn.disabled=!has;
@@ -1952,6 +1981,7 @@ async function fillFilenameFromLocation(target){
      if(!address) throw new Error('Keine Straßenadresse gefunden');
      lastGeoAddress=address;
      lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');
+     if(!stateGisUrls[lastGeoState]) lastGeoState=inferStateFromAddress(address) || lastGeoState;
      refreshPreLocation();
 
      // Set both filename fields so the value is preserved after taking a photo.
@@ -2052,6 +2082,9 @@ if(preLocationBtn) preLocationBtn.onclick=async()=>{
 };
 if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{
   lastGeoAddress=preLocationAddress.value.trim();
+  const typedState=inferStateFromAddress(lastGeoAddress);
+  if(typedState) lastGeoState=typedState;
+  refreshPreLocation();
   if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;
   if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;
   if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;
