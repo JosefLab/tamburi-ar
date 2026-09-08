@@ -1,0 +1,44 @@
+name: Tamburi-v10-42-location-fix
+on:
+  push:
+    paths:
+      - '.github/workflows/v1042-fix.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch v10.42
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('v10.41','v10.42')
+          old='''  <div id="preLocationAddress" style="font-size:14px;font-weight:700"></div>\n  <div class="small" id="preLocationStatus">Standort kann bereits vor dem Fotografieren ermittelt werden. Die vorgeschlagene Adresse bleibt bearbeitbar.</div>'''
+          new='''  <div style="margin-top:8px">\n    <div class="label">Adresse</div>\n    <input id="preLocationAddress" type="text" placeholder="Adresse wird vorgeschlagen – hier korrigierbar" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px">\n  </div>\n  <div class="small" id="preLocationGps" style="margin-top:6px"></div>\n  <div class="small" id="preLocationState"></div>\n  <div class="small" id="preLocationStatus">Standort kann bereits vor dem Fotografieren ermittelt werden. Die vorgeschlagene Adresse bleibt bearbeitbar.</div>'''
+          if old not in s: raise SystemExit('pre location markup not found')
+          s=s.replace(old,new,1)
+          s=s.replace("const preLocationStatus=document.getElementById('preLocationStatus');", "const preLocationStatus=document.getElementById('preLocationStatus');\nconst preLocationGps=document.getElementById('preLocationGps');\nconst preLocationState=document.getElementById('preLocationState');",1)
+          old_refresh="""function refreshPreLocation(){\n const has=!!lastGeoPosition;\n if(preBevBtn) preBevBtn.disabled=!has;\n const gis=stateGisUrls[lastGeoState]||'';\n if(preStateGisBtn){\n   preStateGisBtn.disabled=!gis;\n   preStateGisBtn.textContent=gis ? `🗺️ ${lastGeoState} GIS` : '🗺️ Landes-Kataster';\n }\n if(preLocationAddress) preLocationAddress.textContent=lastGeoAddress||'';\n}"""
+          new_refresh="""function normalizeGeoState(raw){\n const v=(raw||'').trim().toLowerCase();\n const aliases={\n  'wien':'Wien','vienna':'Wien',\n  'niederösterreich':'Niederösterreich','niederoesterreich':'Niederösterreich','lower austria':'Niederösterreich',\n  'oberösterreich':'Oberösterreich','oberoesterreich':'Oberösterreich','upper austria':'Oberösterreich',\n  'burgenland':'Burgenland','kärnten':'Kärnten','kaernten':'Kärnten','carinthia':'Kärnten',\n  'salzburg':'Salzburg','steiermark':'Steiermark','styria':'Steiermark',\n  'tirol':'Tirol','tyrol':'Tirol','vorarlberg':'Vorarlberg'\n };\n return aliases[v]||raw||'';\n}\nfunction refreshPreLocation(){\n const has=!!lastGeoPosition;\n if(preBevBtn) preBevBtn.disabled=!has;\n lastGeoState=normalizeGeoState(lastGeoState);\n const gis=stateGisUrls[lastGeoState]||'';\n if(preStateGisBtn){\n   preStateGisBtn.disabled=!gis;\n   preStateGisBtn.textContent=gis ? `🗺️ ${lastGeoState} GIS` : '🗺️ Landes-Kataster';\n }\n if(preLocationAddress && document.activeElement!==preLocationAddress) preLocationAddress.value=lastGeoAddress||'';\n if(preLocationGps) preLocationGps.textContent=has ? `GPS: ${lastGeoPosition.lat.toFixed(6)}, ${lastGeoPosition.lon.toFixed(6)}${lastGeoPosition.accuracy?' · Genauigkeit ca. '+Math.round(lastGeoPosition.accuracy)+' m':''}` : '';\n if(preLocationState) preLocationState.textContent=lastGeoState ? `Bundesland: ${lastGeoState}` : (has?'Bundesland konnte nicht automatisch erkannt werden. BEV Kataster ist verfügbar.':'');\n}"""
+          if old_refresh not in s: raise SystemExit('refresh function not found')
+          s=s.replace(old_refresh,new_refresh,1)
+          s=s.replace("lastGeoState=(data.address||{}).state || '';", "lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');",1)
+          marker="if(preBevBtn) preBevBtn.onclick=()=>{"
+          insert="""if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{\n  lastGeoAddress=preLocationAddress.value.trim();\n  if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;\n  if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;\n  if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;\n});\n"""
+          if marker not in s: raise SystemExit('button marker not found')
+          s=s.replace(marker,insert+marker,1)
+          p.write_text(s)
+          PY
+      - name: Commit v10.42
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "v10.42 editable location and robust state GIS routing"
+          git push
