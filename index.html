@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.40</title>
+<title>Tamburi Standort AR v10.41</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.40</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.41</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -501,6 +501,16 @@ body.noLockerMode #desktopScale{
   </div>
 </div>
 
+<div class="panel" id="preLocationPanel">
+  <div class="label">📍 Standort vor der Aufnahme</div>
+  <div class="row" style="margin-bottom:6px">
+    <button type="button" class="action primary" id="preLocationBtn">📍 Standort abrufen</button>
+    <button type="button" class="action" id="preStateGisBtn" disabled>🗺️ Landes-Kataster</button>
+    <button type="button" class="action" id="preBevBtn" disabled>📐 BEV Kataster</button>
+  </div>
+  <div id="preLocationAddress" style="font-size:14px;font-weight:700"></div>
+  <div class="small" id="preLocationStatus">Standort kann bereits vor dem Fotografieren ermittelt werden. Die vorgeschlagene Adresse bleibt bearbeitbar.</div>
+</div>
 
 <div class="panel">
   <div class="label">1. Anzahl Kästen</div>
@@ -1020,7 +1030,7 @@ async function saveDesktopImage(){
     ctx.fillStyle='#111';
     ctx.fillRect(0,0,W,H);
 
-    // v10.40: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
+    // v10.41: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
     const iw=importedPhoto.naturalWidth;
     const ih=importedPhoto.naturalHeight;
     if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
@@ -1092,7 +1102,7 @@ async function saveDesktopImage(){
         }
       }
 
-      // v10.40: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
+      // v10.41: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
       const stageRect=stage.getBoundingClientRect();
       const viewerRect=viewer.getBoundingClientRect();
       const drawW=viewerRect.width*mapX;
@@ -1841,7 +1851,42 @@ const locationResultBtn=document.getElementById('locationResultBtn');
 const locationStatus=document.getElementById('locationStatus');
 const katasterBtn=document.getElementById('katasterBtn');
 const katasterResultBtn=document.getElementById('katasterResultBtn');
+const preLocationBtn=document.getElementById('preLocationBtn');
+const preStateGisBtn=document.getElementById('preStateGisBtn');
+const preBevBtn=document.getElementById('preBevBtn');
+const preLocationAddress=document.getElementById('preLocationAddress');
+const preLocationStatus=document.getElementById('preLocationStatus');
 let lastGeoPosition=null;
+let lastGeoAddress=null;
+let lastGeoState='';
+
+const stateGisUrls={
+ 'Burgenland':'https://gis.bgld.gv.at/',
+ 'Kärnten':'https://gis.ktn.gv.at/',
+ 'Carinthia':'https://gis.ktn.gv.at/',
+ 'Niederösterreich':'https://atlas.noe.gv.at/',
+ 'Lower Austria':'https://atlas.noe.gv.at/',
+ 'Oberösterreich':'https://doris.ooe.gv.at/',
+ 'Upper Austria':'https://doris.ooe.gv.at/',
+ 'Salzburg':'https://www.salzburg.gv.at/sagis',
+ 'Steiermark':'https://gis.stmk.gv.at/',
+ 'Styria':'https://gis.stmk.gv.at/',
+ 'Tirol':'https://maps.tirol.gv.at/',
+ 'Tyrol':'https://maps.tirol.gv.at/',
+ 'Vorarlberg':'https://vogis.vorarlberg.at/',
+ 'Wien':'https://www.wien.gv.at/stadtplan/',
+ 'Vienna':'https://www.wien.gv.at/stadtplan/'
+};
+function refreshPreLocation(){
+ const has=!!lastGeoPosition;
+ if(preBevBtn) preBevBtn.disabled=!has;
+ const gis=stateGisUrls[lastGeoState]||'';
+ if(preStateGisBtn){
+   preStateGisBtn.disabled=!gis;
+   preStateGisBtn.textContent=gis ? `🗺️ ${lastGeoState} GIS` : '🗺️ Landes-Kataster';
+ }
+ if(preLocationAddress) preLocationAddress.textContent=lastGeoAddress||'';
+}
 
 function locationButtonBusy(busy){
  [locationNameBtn,locationResultBtn].filter(Boolean).forEach(btn=>{
@@ -1883,6 +1928,9 @@ async function fillFilenameFromLocation(target){
      const data=await reverseGeocode(pos.coords.latitude,pos.coords.longitude);
      const address=buildAddressName(data.address||{});
      if(!address) throw new Error('Keine Straßenadresse gefunden');
+     lastGeoAddress=address;
+     lastGeoState=(data.address||{}).state || '';
+     refreshPreLocation();
 
      // Set both filename fields so the value is preserved after taking a photo.
      if(document.getElementById('photoName')) document.getElementById('photoName').value=address;
@@ -1959,6 +2007,34 @@ if(locationNameBtn) locationNameBtn.onclick=()=>fillFilenameFromLocation(documen
 if(desktopLocationBtn) desktopLocationBtn.onclick=()=>fillFilenameFromLocation(desktopPhotoName);
 
 if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));
+
+if(preLocationBtn) preLocationBtn.onclick=async()=>{
+  preLocationBtn.disabled=true;
+  preLocationBtn.textContent='📍 Standort wird ermittelt…';
+  if(preLocationStatus) preLocationStatus.textContent='GPS und Adresse werden abgerufen…';
+  await fillFilenameFromLocation(document.getElementById('photoName'));
+  // fillFilenameFromLocation uses callback-based geolocation; wait briefly for UI state via polling.
+  let n=0; const timer=setInterval(()=>{
+    n++;
+    if(lastGeoPosition || n>30){
+      clearInterval(timer);
+      preLocationBtn.disabled=false; preLocationBtn.textContent='📍 Standort aktualisieren';
+      refreshPreLocation();
+      if(preLocationStatus){
+        preLocationStatus.textContent=lastGeoPosition
+          ? `GPS gespeichert${lastGeoPosition.accuracy?' · Genauigkeit ca. '+Math.round(lastGeoPosition.accuracy)+' m':''}${lastGeoState?' · '+lastGeoState:''}. Adresse bei Bedarf manuell korrigieren.`
+          : 'Standort konnte nicht ermittelt werden.';
+      }
+    }
+  },400);
+};
+if(preBevBtn) preBevBtn.onclick=()=>{
+  if(lastGeoPosition) openKatasterAt(lastGeoPosition.lat,lastGeoPosition.lon);
+};
+if(preStateGisBtn) preStateGisBtn.onclick=()=>{
+  const url=stateGisUrls[lastGeoState];
+  if(url) window.open(url,'_blank','noopener');
+};
 </script>
 
 
