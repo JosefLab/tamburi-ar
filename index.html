@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.41</title>
+<title>Tamburi Standort AR v10.42</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.41</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.42</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -508,7 +508,12 @@ body.noLockerMode #desktopScale{
     <button type="button" class="action" id="preStateGisBtn" disabled>🗺️ Landes-Kataster</button>
     <button type="button" class="action" id="preBevBtn" disabled>📐 BEV Kataster</button>
   </div>
-  <div id="preLocationAddress" style="font-size:14px;font-weight:700"></div>
+  <div style="margin-top:8px">
+    <div class="label">Adresse</div>
+    <input id="preLocationAddress" type="text" placeholder="Adresse wird vorgeschlagen – hier korrigierbar" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px">
+  </div>
+  <div class="small" id="preLocationGps" style="margin-top:6px"></div>
+  <div class="small" id="preLocationState"></div>
   <div class="small" id="preLocationStatus">Standort kann bereits vor dem Fotografieren ermittelt werden. Die vorgeschlagene Adresse bleibt bearbeitbar.</div>
 </div>
 
@@ -1030,7 +1035,7 @@ async function saveDesktopImage(){
     ctx.fillStyle='#111';
     ctx.fillRect(0,0,W,H);
 
-    // v10.41: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
+    // v10.42: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
     const iw=importedPhoto.naturalWidth;
     const ih=importedPhoto.naturalHeight;
     if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
@@ -1102,7 +1107,7 @@ async function saveDesktopImage(){
         }
       }
 
-      // v10.41: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
+      // v10.42: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
       const stageRect=stage.getBoundingClientRect();
       const viewerRect=viewer.getBoundingClientRect();
       const drawW=viewerRect.width*mapX;
@@ -1856,6 +1861,8 @@ const preStateGisBtn=document.getElementById('preStateGisBtn');
 const preBevBtn=document.getElementById('preBevBtn');
 const preLocationAddress=document.getElementById('preLocationAddress');
 const preLocationStatus=document.getElementById('preLocationStatus');
+const preLocationGps=document.getElementById('preLocationGps');
+const preLocationState=document.getElementById('preLocationState');
 let lastGeoPosition=null;
 let lastGeoAddress=null;
 let lastGeoState='';
@@ -1877,15 +1884,30 @@ const stateGisUrls={
  'Wien':'https://www.wien.gv.at/stadtplan/',
  'Vienna':'https://www.wien.gv.at/stadtplan/'
 };
+function normalizeGeoState(raw){
+ const v=(raw||'').trim().toLowerCase();
+ const aliases={
+  'wien':'Wien','vienna':'Wien',
+  'niederösterreich':'Niederösterreich','niederoesterreich':'Niederösterreich','lower austria':'Niederösterreich',
+  'oberösterreich':'Oberösterreich','oberoesterreich':'Oberösterreich','upper austria':'Oberösterreich',
+  'burgenland':'Burgenland','kärnten':'Kärnten','kaernten':'Kärnten','carinthia':'Kärnten',
+  'salzburg':'Salzburg','steiermark':'Steiermark','styria':'Steiermark',
+  'tirol':'Tirol','tyrol':'Tirol','vorarlberg':'Vorarlberg'
+ };
+ return aliases[v]||raw||'';
+}
 function refreshPreLocation(){
  const has=!!lastGeoPosition;
  if(preBevBtn) preBevBtn.disabled=!has;
+ lastGeoState=normalizeGeoState(lastGeoState);
  const gis=stateGisUrls[lastGeoState]||'';
  if(preStateGisBtn){
    preStateGisBtn.disabled=!gis;
    preStateGisBtn.textContent=gis ? `🗺️ ${lastGeoState} GIS` : '🗺️ Landes-Kataster';
  }
- if(preLocationAddress) preLocationAddress.textContent=lastGeoAddress||'';
+ if(preLocationAddress && document.activeElement!==preLocationAddress) preLocationAddress.value=lastGeoAddress||'';
+ if(preLocationGps) preLocationGps.textContent=has ? `GPS: ${lastGeoPosition.lat.toFixed(6)}, ${lastGeoPosition.lon.toFixed(6)}${lastGeoPosition.accuracy?' · Genauigkeit ca. '+Math.round(lastGeoPosition.accuracy)+' m':''}` : '';
+ if(preLocationState) preLocationState.textContent=lastGeoState ? `Bundesland: ${lastGeoState}` : (has?'Bundesland konnte nicht automatisch erkannt werden. BEV Kataster ist verfügbar.':'');
 }
 
 function locationButtonBusy(busy){
@@ -1929,7 +1951,7 @@ async function fillFilenameFromLocation(target){
      const address=buildAddressName(data.address||{});
      if(!address) throw new Error('Keine Straßenadresse gefunden');
      lastGeoAddress=address;
-     lastGeoState=(data.address||{}).state || '';
+     lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');
      refreshPreLocation();
 
      // Set both filename fields so the value is preserved after taking a photo.
@@ -2028,6 +2050,12 @@ if(preLocationBtn) preLocationBtn.onclick=async()=>{
     }
   },400);
 };
+if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{
+  lastGeoAddress=preLocationAddress.value.trim();
+  if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;
+  if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;
+  if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;
+});
 if(preBevBtn) preBevBtn.onclick=()=>{
   if(lastGeoPosition) openKatasterAt(lastGeoPosition.lat,lastGeoPosition.lon);
 };
