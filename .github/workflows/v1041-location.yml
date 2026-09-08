@@ -1,0 +1,46 @@
+name: Tamburi-v10-41-location
+on:
+  push:
+    paths:
+      - '.github/workflows/v1041-location.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch v10.41
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('v10.40','v10.41')
+          marker='''</div>\n\n\n<div class="panel">\n  <div class="label">1. Anzahl Kästen</div>'''
+          insert='''</div>\n\n<div class="panel" id="preLocationPanel">\n  <div class="label">📍 Standort vor der Aufnahme</div>\n  <div class="row" style="margin-bottom:6px">\n    <button type="button" class="action primary" id="preLocationBtn">📍 Standort abrufen</button>\n    <button type="button" class="action" id="preStateGisBtn" disabled>🗺️ Landes-Kataster</button>\n    <button type="button" class="action" id="preBevBtn" disabled>📐 BEV Kataster</button>\n  </div>\n  <div id="preLocationAddress" style="font-size:14px;font-weight:700"></div>\n  <div class="small" id="preLocationStatus">Standort kann bereits vor dem Fotografieren ermittelt werden. Die vorgeschlagene Adresse bleibt bearbeitbar.</div>\n</div>\n\n<div class="panel">\n  <div class="label">1. Anzahl Kästen</div>'''
+          if marker not in s: raise SystemExit('HTML marker not found')
+          s=s.replace(marker,insert,1)
+          old="""const katasterResultBtn=document.getElementById('katasterResultBtn');\nlet lastGeoPosition=null;"""
+          new="""const katasterResultBtn=document.getElementById('katasterResultBtn');\nconst preLocationBtn=document.getElementById('preLocationBtn');\nconst preStateGisBtn=document.getElementById('preStateGisBtn');\nconst preBevBtn=document.getElementById('preBevBtn');\nconst preLocationAddress=document.getElementById('preLocationAddress');\nconst preLocationStatus=document.getElementById('preLocationStatus');\nlet lastGeoPosition=null;\nlet lastGeoAddress=null;\nlet lastGeoState='';\n\nconst stateGisUrls={\n 'Burgenland':'https://gis.bgld.gv.at/',\n 'Kärnten':'https://gis.ktn.gv.at/',\n 'Carinthia':'https://gis.ktn.gv.at/',\n 'Niederösterreich':'https://atlas.noe.gv.at/',\n 'Lower Austria':'https://atlas.noe.gv.at/',\n 'Oberösterreich':'https://doris.ooe.gv.at/',\n 'Upper Austria':'https://doris.ooe.gv.at/',\n 'Salzburg':'https://www.salzburg.gv.at/sagis',\n 'Steiermark':'https://gis.stmk.gv.at/',\n 'Styria':'https://gis.stmk.gv.at/',\n 'Tirol':'https://maps.tirol.gv.at/',\n 'Tyrol':'https://maps.tirol.gv.at/',\n 'Vorarlberg':'https://vogis.vorarlberg.at/',\n 'Wien':'https://www.wien.gv.at/stadtplan/',\n 'Vienna':'https://www.wien.gv.at/stadtplan/'\n};\nfunction refreshPreLocation(){\n const has=!!lastGeoPosition;\n if(preBevBtn) preBevBtn.disabled=!has;\n const gis=stateGisUrls[lastGeoState]||'';\n if(preStateGisBtn){\n   preStateGisBtn.disabled=!gis;\n   preStateGisBtn.textContent=gis ? `🗺️ ${lastGeoState} GIS` : '🗺️ Landes-Kataster';\n }\n if(preLocationAddress) preLocationAddress.textContent=lastGeoAddress||'';\n}"""
+          if old not in s: raise SystemExit('JS marker 1 not found')
+          s=s.replace(old,new,1)
+          old2="""const data=await reverseGeocode(pos.coords.latitude,pos.coords.longitude);\n     const address=buildAddressName(data.address||{});\n     if(!address) throw new Error('Keine Straßenadresse gefunden');"""
+          new2="""const data=await reverseGeocode(pos.coords.latitude,pos.coords.longitude);\n     const address=buildAddressName(data.address||{});\n     if(!address) throw new Error('Keine Straßenadresse gefunden');\n     lastGeoAddress=address;\n     lastGeoState=(data.address||{}).state || '';\n     refreshPreLocation();"""
+          if old2 not in s: raise SystemExit('JS marker 2 not found')
+          s=s.replace(old2,new2,1)
+          endmarker="""if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));\n</script>"""
+          endinsert="""if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));\n\nif(preLocationBtn) preLocationBtn.onclick=async()=>{\n  preLocationBtn.disabled=true;\n  preLocationBtn.textContent='📍 Standort wird ermittelt…';\n  if(preLocationStatus) preLocationStatus.textContent='GPS und Adresse werden abgerufen…';\n  await fillFilenameFromLocation(document.getElementById('photoName'));\n  // fillFilenameFromLocation uses callback-based geolocation; wait briefly for UI state via polling.\n  let n=0; const timer=setInterval(()=>{\n    n++;\n    if(lastGeoPosition || n>30){\n      clearInterval(timer);\n      preLocationBtn.disabled=false; preLocationBtn.textContent='📍 Standort aktualisieren';\n      refreshPreLocation();\n      if(preLocationStatus){\n        preLocationStatus.textContent=lastGeoPosition\n          ? `GPS gespeichert${lastGeoPosition.accuracy?' · Genauigkeit ca. '+Math.round(lastGeoPosition.accuracy)+' m':''}${lastGeoState?' · '+lastGeoState:''}. Adresse bei Bedarf manuell korrigieren.`\n          : 'Standort konnte nicht ermittelt werden.';\n      }\n    }\n  },400);\n};\nif(preBevBtn) preBevBtn.onclick=()=>{\n  if(lastGeoPosition) openKatasterAt(lastGeoPosition.lat,lastGeoPosition.lon);\n};\nif(preStateGisBtn) preStateGisBtn.onclick=()=>{\n  const url=stateGisUrls[lastGeoState];\n  if(url) window.open(url,'_blank','noopener');\n};\n</script>"""
+          if endmarker not in s: raise SystemExit('JS end marker not found')
+          s=s.replace(endmarker,endinsert,1)
+          p.write_text(s)
+          PY
+      - name: Commit v10.41
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "v10.41 add pre-photo GPS and state GIS routing"
+          git push
