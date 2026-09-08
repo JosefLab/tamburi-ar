@@ -1,0 +1,89 @@
+name: Tamburi-v10-43-kataster-address
+on:
+  push:
+    paths:
+      - '.github/workflows/v1043-fix.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch v10.43
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('v10.42','v10.43')
+          marker="""function refreshPreLocation(){"""
+          insert="""function inferStateFromAddress(text){
+ const t=(text||'').toLowerCase();
+ const named=[
+  [/\\bwien\\b|\\bvienna\\b/,'Wien'],
+  [/niederösterreich|niederoesterreich|lower austria/,'Niederösterreich'],
+  [/oberösterreich|oberoesterreich|upper austria/,'Oberösterreich'],
+  [/\\bburgenland\\b/,'Burgenland'],
+  [/kärnten|kaernten|carinthia/,'Kärnten'],
+  [/\\bsalzburg\\b/,'Salzburg'],
+  [/steiermark|styria/,'Steiermark'],
+  [/\\btirol\\b|\\btyrol\\b/,'Tirol'],
+  [/\\bvorarlberg\\b/,'Vorarlberg']
+ ];
+ for(const [rx,state] of named){ if(rx.test(t)) return state; }
+ const m=t.match(/(?:^|\\D)(\\d{4})(?:\\D|$)/);
+ if(!m) return '';
+ const plz=Number(m[1]);
+ if(plz>=1000&&plz<=1999) return 'Wien';
+ if(plz>=2000&&plz<=3999) return 'Niederösterreich';
+ if(plz>=4000&&plz<=4999) return 'Oberösterreich';
+ if(plz>=5000&&plz<=5999) return 'Salzburg';
+ if(plz>=6000&&plz<=6699) return 'Tirol';
+ if(plz>=6700&&plz<=6999) return 'Vorarlberg';
+ if(plz>=7000&&plz<=7999) return 'Burgenland';
+ if(plz>=8000&&plz<=8999) return 'Steiermark';
+ if(plz>=9000&&plz<=9999) return 'Kärnten';
+ return '';
+}
+
+"""
+          if marker not in s: raise SystemExit('refresh marker not found')
+          s=s.replace(marker,insert+marker,1)
+          old="""     lastGeoAddress=address;
+     lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');
+     refreshPreLocation();"""
+          new="""     lastGeoAddress=address;
+     lastGeoState=normalizeGeoState((data.address||{}).state || (data.address||{}).region || '');
+     if(!stateGisUrls[lastGeoState]) lastGeoState=inferStateFromAddress(address) || lastGeoState;
+     refreshPreLocation();"""
+          if old not in s: raise SystemExit('geo assignment block not found')
+          s=s.replace(old,new,1)
+          old_input="""if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{
+  lastGeoAddress=preLocationAddress.value.trim();
+  if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;
+  if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;
+  if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;
+});"""
+          new_input="""if(preLocationAddress) preLocationAddress.addEventListener('input',()=>{
+  lastGeoAddress=preLocationAddress.value.trim();
+  const typedState=inferStateFromAddress(lastGeoAddress);
+  if(typedState) lastGeoState=typedState;
+  refreshPreLocation();
+  if(document.getElementById('photoName')) document.getElementById('photoName').value=lastGeoAddress;
+  if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=lastGeoAddress;
+  if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=lastGeoAddress;
+});"""
+          if old_input not in s: raise SystemExit('address input handler not found')
+          s=s.replace(old_input,new_input,1)
+          p.write_text(s)
+          PY
+      - name: Commit v10.43
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "v10.43 detect state kataster from address and postal code"
+          git push
