@@ -4,165 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.44</title>
+<title>Tamburi Standort AR v10.45</title>
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef0f1}
 #app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#eef0f1}
 </style>
 </head>
 <body>
-<iframe id="app" src="v1043.html" title="Tamburi Standort AR v10.44" allow="camera; geolocation; fullscreen; clipboard-write"></iframe>
+<iframe id="app" src="v1043.html" title="Tamburi Standort AR v10.45" allow="camera; geolocation; fullscreen; clipboard-write"></iframe>
 <script>
-const APP_VERSION='10.44';
+const APP_VERSION='10.45';
 const SHEET_WEBAPP='https://script.google.com/macros/s/AKfycby9N5ZygYPfmUNHYnCaO0lFTsXJ86G0Xq3BEsf8qJv0LD72ckeMOIobFGGMJk2WMK-24g/exec';
 
-function injectV1044(){
+function injectV1045(){
  const frame=document.getElementById('app');
  const w=frame.contentWindow,d=frame.contentDocument;
  if(!w||!d)return;
-
- d.title='Tamburi Standort AR v10.44';
+ d.title='Tamburi Standort AR v10.45';
  const versionSpan=d.querySelector('header h1 span');
- if(versionSpan)versionSpan.textContent='v10.44';
-
+ if(versionSpan)versionSpan.textContent='v10.45';
  const style=d.createElement('style');
- style.textContent=`
-  #v1044SheetPanel{margin:10px;border:0;border-radius:15px;padding:14px;background:#fff;box-shadow:0 3px 14px rgba(24,28,32,.07)}
-  #v1044SheetPanel .v1044Grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  #v1044SheetPanel .v1044Field{display:flex;flex-direction:column;gap:5px}
-  #v1044SheetPanel .v1044Field.full{grid-column:1/-1}
-  #v1044SheetPanel label{font-size:12px;font-weight:700;color:#3a3d41}
-  #v1044SheetPanel input,#v1044SheetPanel select,#v1044SheetPanel textarea{width:100%;padding:10px;border:1px solid #bbb;border-radius:9px;font:inherit;background:#fff}
-  #v1044SheetPanel textarea{min-height:78px;resize:vertical}
-  #v1044Send{background:linear-gradient(135deg,#f28c28,#d96f0d);color:#fff;border:0;border-radius:11px;padding:12px 18px;font-weight:700;font-size:15px}
-  #v1044Send:disabled{opacity:.55}
-  #v1044SheetStatus{font-size:12px;color:#5b6065;min-height:18px;margin-top:7px}
-  #v1044Preferred{font-weight:700}
-  @media(max-width:650px){#v1044SheetPanel .v1044Grid{grid-template-columns:1fr}}
- `;
+ style.textContent=`#v1044SheetPanel{margin:10px;border:0;border-radius:15px;padding:14px;background:#fff;box-shadow:0 3px 14px rgba(24,28,32,.07)}#v1044SheetPanel .v1044Grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#v1044SheetPanel .v1044Field{display:flex;flex-direction:column;gap:5px}#v1044SheetPanel .v1044Field.full{grid-column:1/-1}#v1044SheetPanel label{font-size:12px;font-weight:700;color:#3a3d41}#v1044SheetPanel input,#v1044SheetPanel select,#v1044SheetPanel textarea{width:100%;padding:10px;border:1px solid #bbb;border-radius:9px;font:inherit;background:#fff}#v1044SheetPanel textarea{min-height:78px;resize:vertical}#v1044Send{background:linear-gradient(135deg,#f28c28,#d96f0d);color:#fff;border:0;border-radius:11px;padding:12px 18px;font-weight:700;font-size:15px}#v1044Send:disabled{opacity:.55}#v1044SheetStatus{font-size:12px;color:#5b6065;min-height:18px;margin-top:7px}#v1044Preferred{font-weight:700}@media(max-width:650px){#v1044SheetPanel .v1044Grid{grid-template-columns:1fr}}`;
  d.head.appendChild(style);
-
- const panel=d.createElement('div');
- panel.id='v1044SheetPanel';
- panel.innerHTML=`
-   <div class="label">📋 Standortdaten · Google Sheet</div>
-   <div class="small" style="margin-bottom:10px">Nur der bevorzugte Standort wird mit „Senden“ als eine neue Zeile übertragen.</div>
-   <div class="v1044Grid">
-    <div class="v1044Field full"><label>Adresse</label><input id="v1044Adresse" placeholder="Adresse"></div>
-    <div class="v1044Field"><label>GPS Latitude</label><input id="v1044Lat" inputmode="decimal" placeholder="48.000000"></div>
-    <div class="v1044Field"><label>GPS Longitude</label><input id="v1044Lon" inputmode="decimal" placeholder="16.000000"></div>
-    <div class="v1044Field full"><label>Montagebeschreibung</label><textarea id="v1044Montage" placeholder="Montagehinweise / Besonderheiten"></textarea></div>
-    <div class="v1044Field"><label>Grundmodul</label><select id="v1044Grundmodul"><option value="1">1</option><option value="0">0 / ohne Kasten</option></select></div>
-    <div class="v1044Field"><label>Erweiterungskästen</label><select id="v1044Erweiterung"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
-    <div class="v1044Field"><label>Montagefläche</label><input id="v1044Flaeche" placeholder="z. B. 2,5 x 1,5 m"></div>
-    <div class="v1044Field"><label>Besichtigt am</label><input id="v1044Datum" type="date"></div>
-    <div class="v1044Field"><label>Besichtigt von</label><input id="v1044Besichtiger" value="Josef Röhrich"></div>
-    <div class="v1044Field"><label>Montagemittel</label><input id="v1044Mittel" placeholder="z. B. Bodenmontage"></div>
-    <div class="v1044Field"><label>Betonplatten</label><select id="v1044Platten"><option value="Nein">Nein</option><option value="50 cm">50 cm</option><option value="100 cm">100 cm</option><option value="Ja">Ja</option></select></div>
-    <div class="v1044Field"><label>Beschilderung</label><select id="v1044Schild"><option value="Nein">Nein</option><option value="Ja">Ja</option></select></div>
-    <div class="v1044Field"><label>Solar</label><select id="v1044Solar"><option value="Nein">Nein</option><option value="Ja">Ja</option></select></div>
-    <div class="v1044Field"><label>Bevorzugte Variante</label><select id="v1044Preferred"><option value="1">Variante 1</option></select></div>
-    <div class="v1044Field"><label>Rendering</label><input id="v1044Rendering" placeholder="Dateiname / Link"></div>
-    <div class="v1044Field full"><label>Genossenschaft / Hausverwaltung</label><input id="v1044HV" placeholder="Pflicht-/Kernangabe"></div>
-    <div class="v1044Field"><label>Ansprechpartner</label><input id="v1044Kontakt" placeholder="Name"></div>
-    <div class="v1044Field"><label>Telefon</label><input id="v1044Tel" type="tel"></div>
-    <div class="v1044Field full"><label>E-Mail</label><input id="v1044Email" type="email"></div>
-   </div>
-   <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px"><button id="v1044Send" type="button">📤 An Google Sheet senden</button><span class="small">1 Klick = 1 neue Standortzeile</span></div>
-   <div id="v1044SheetStatus"></div>`;
-
- const result=d.getElementById('v9Result');
- if(result)result.insertAdjacentElement('afterend',panel); else d.body.appendChild(panel);
-
- const $=id=>d.getElementById(id);
- const today=new Date();
- $('v1044Datum').value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-
- function syncAutoFields(){
-   const addr=(d.getElementById('preLocationAddress')?.value||w.lastGeoAddress||d.getElementById('photoName')?.value||'').trim();
-   if(addr && (!$('v1044Adresse').value || d.activeElement!==$('v1044Adresse')))$('v1044Adresse').value=addr;
-   if(w.lastGeoPosition){
-     $('v1044Lat').value=Number(w.lastGeoPosition.lat).toFixed(6);
-     $('v1044Lon').value=Number(w.lastGeoPosition.lon).toFixed(6);
-   }
-   if(w.state){
-     const count=Number(w.state.count||0);
-     $('v1044Grundmodul').value=count>0?'1':'0';
-     $('v1044Erweiterung').value=String(Math.max(0,count-1));
-     if(w.state.plates==='50')$('v1044Platten').value='50 cm';
-     else if(w.state.plates==='100')$('v1044Platten').value='100 cm';
-     else $('v1044Platten').value='Nein';
-     if(w.state.base==='sockel' && !$('v1044Mittel').value)$('v1044Mittel').value='Betonsockel';
-   }
-   const variants=w.v101Variants||[];
-   const sel=$('v1044Preferred');
-   const current=String(Math.min(Math.max(1,(w.v101Current||0)+1),Math.max(1,variants.length)));
-   const old=sel.value||current;
-   sel.innerHTML='';
-   const n=Math.max(1,variants.length);
-   for(let i=1;i<=n;i++){
-     const o=d.createElement('option');o.value=String(i);o.textContent='Variante '+i;sel.appendChild(o);
-   }
-   sel.value=[...sel.options].some(o=>o.value===old)?old:current;
-   const base=(typeof w.v10BaseName==='function'?w.v10BaseName():addr)||'Tamburi_Standort';
-   if(!$('v1044Rendering').value)$('v1044Rendering').value=`${base} - Variante ${sel.value}.jpg`;
- }
-
- panel.addEventListener('focusin',syncAutoFields);
- setInterval(syncAutoFields,1500);
- $('v1044Preferred').addEventListener('change',()=>{
-   const base=(typeof w.v10BaseName==='function'?w.v10BaseName():$('v1044Adresse').value)||'Tamburi_Standort';
-   $('v1044Rendering').value=`${base} - Variante ${$('v1044Preferred').value}.jpg`;
- });
-
- $('v1044Send').onclick=async()=>{
-   syncAutoFields();
-   const btn=$('v1044Send'),st=$('v1044SheetStatus');
-   if(!$('v1044Adresse').value.trim()){st.textContent='Bitte zuerst eine Adresse eintragen.';return;}
-   if(!$('v1044HV').value.trim()){st.textContent='Bitte Genossenschaft / Hausverwaltung eintragen.';return;}
-   const data={
-    adresse:$('v1044Adresse').value.trim(),latitude:$('v1044Lat').value.trim(),longitude:$('v1044Lon').value.trim(),
-    montagebeschreibung:$('v1044Montage').value.trim(),grundmodul:$('v1044Grundmodul').value,
-    erweiterungskaesten:$('v1044Erweiterung').value,montageflaeche:$('v1044Flaeche').value.trim(),
-    besichtigtAm:$('v1044Datum').value,besichtigtVon:$('v1044Besichtiger').value.trim(),montagemittel:$('v1044Mittel').value.trim(),
-    betonplatten:$('v1044Platten').value,beschilderung:$('v1044Schild').value,solar:$('v1044Solar').value,
-    rendering:$('v1044Rendering').value.trim(),hausverwaltung:$('v1044HV').value.trim(),ansprechpartner:$('v1044Kontakt').value.trim(),
-    telefon:$('v1044Tel').value.trim(),email:$('v1044Email').value.trim()
-   };
-   btn.disabled=true;st.textContent='Standort wird an Google Sheet gesendet …';
-   try{
-     await fetch(SHEET_WEBAPP,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(data)});
-     st.textContent=`Gesendet: ${data.adresse} · bevorzugte Variante ${$('v1044Preferred').value}. Bitte im Sheet kontrollieren.`;
-   }catch(e){
-     console.error(e);st.textContent='Senden fehlgeschlagen. Internetverbindung bzw. Apps-Script-Bereitstellung prüfen.';
-   }finally{btn.disabled=false;}
- };
-
- // v10.44: Landes-GIS möglichst direkt am aktuellen GPS-Standort öffnen.
- function stateGisDeepLink(state,pos){
-   const lon=Number(pos?.lon),lat=Number(pos?.lat);
-   const has=Number.isFinite(lon)&&Number.isFinite(lat);
-   if(state==='Niederösterreich' && has){
-     return `https://atlas.noe.gv.at/atlas/portal/noe-atlas?center=${lon.toFixed(6)},${lat.toFixed(6)}&scale=1000`;
-   }
-   if(state==='Oberösterreich' && has){
-     return `https://service.ooe.gv.at/at.gv.ooe.webgis/webgis-portal/default/map/Allgemein/DORIS-Standard?center=${lon.toFixed(6)},${lat.toFixed(6)}&scale=1000`;
-   }
-   return w.stateGisUrls?.[state]||'';
- }
- const gisBtn=d.getElementById('preStateGisBtn');
- if(gisBtn)gisBtn.onclick=()=>{
-   const state=w.normalizeGeoState?w.normalizeGeoState(w.lastGeoState):w.lastGeoState;
-   const url=stateGisDeepLink(state,w.lastGeoPosition);
-   if(url)w.open(url,'_blank','noopener');
- };
-
- syncAutoFields();
+ const panel=d.createElement('div'); panel.id='v1044SheetPanel';
+ panel.innerHTML=`<div class="label">📋 Standortdaten · Google Sheet</div><div class="small" style="margin-bottom:10px">Nur der bevorzugte Standort wird mit „Senden“ als eine neue Zeile übertragen.</div><div class="v1044Grid"><div class="v1044Field full"><label>Adresse</label><input id="v1044Adresse" placeholder="Adresse"></div><div class="v1044Field"><label>GPS Latitude</label><input id="v1044Lat" inputmode="decimal" placeholder="48.000000"></div><div class="v1044Field"><label>GPS Longitude</label><input id="v1044Lon" inputmode="decimal" placeholder="16.000000"></div><div class="v1044Field full"><label>Montagebeschreibung</label><textarea id="v1044Montage" placeholder="Montagehinweise / Besonderheiten"></textarea></div><div class="v1044Field"><label>Grundmodul</label><select id="v1044Grundmodul"><option value="1">1</option><option value="0">0 / ohne Kasten</option></select></div><div class="v1044Field"><label>Erweiterungskästen</label><select id="v1044Erweiterung"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div><div class="v1044Field"><label>Montagefläche</label><input id="v1044Flaeche" placeholder="z. B. 2,5 x 1,5 m"></div><div class="v1044Field"><label>Besichtigt am</label><input id="v1044Datum" type="date"></div><div class="v1044Field"><label>Besichtigt von</label><input id="v1044Besichtiger" value="Josef Röhrich"></div><div class="v1044Field"><label>Montagemittel</label><input id="v1044Mittel" placeholder="z. B. Bodenmontage"></div><div class="v1044Field"><label>Betonplatten</label><select id="v1044Platten"><option value="Nein">Nein</option><option value="50 cm">50 cm</option><option value="100 cm">100 cm</option><option value="Ja">Ja</option></select></div><div class="v1044Field"><label>Beschilderung</label><select id="v1044Schild"><option value="Nein">Nein</option><option value="Ja">Ja</option></select></div><div class="v1044Field"><label>Solar</label><select id="v1044Solar"><option value="Nein">Nein</option><option value="Ja">Ja</option></select></div><div class="v1044Field"><label>Bevorzugte Variante</label><select id="v1044Preferred"><option value="1">Variante 1</option></select></div><div class="v1044Field"><label>Rendering</label><input id="v1044Rendering" placeholder="Dateiname / Link"></div><div class="v1044Field full"><label>Genossenschaft / Hausverwaltung</label><input id="v1044HV" placeholder="Pflicht-/Kernangabe"></div><div class="v1044Field"><label>Ansprechpartner</label><input id="v1044Kontakt" placeholder="Name"></div><div class="v1044Field"><label>Telefon</label><input id="v1044Tel" type="tel"></div><div class="v1044Field full"><label>E-Mail</label><input id="v1044Email" type="email"></div></div><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px"><button id="v1044Send" type="button">📤 An Google Sheet senden</button><span class="small">1 Klick = 1 neue Standortzeile</span></div><div id="v1044SheetStatus"></div>`;
+ const result=d.getElementById('v9Result'); if(result)result.insertAdjacentElement('afterend',panel); else d.body.appendChild(panel);
+ const $=id=>d.getElementById(id); const today=new Date(); $('v1044Datum').value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+ function syncGPS(){if(w.lastGeoPosition){$('v1044Lat').value=Number(w.lastGeoPosition.lat).toFixed(6);$('v1044Lon').value=Number(w.lastGeoPosition.lon).toFixed(6);}}
+ function syncAutoFields(){const addr=(d.getElementById('preLocationAddress')?.value||w.lastGeoAddress||d.getElementById('photoName')?.value||'').trim();if(addr&&(!$('v1044Adresse').value||d.activeElement!==$('v1044Adresse')))$('v1044Adresse').value=addr;syncGPS();if(w.state){const count=Number(w.state.count||0);$('v1044Grundmodul').value=count>0?'1':'0';$('v1044Erweiterung').value=String(Math.max(0,count-1));if(w.state.plates==='50')$('v1044Platten').value='50 cm';else if(w.state.plates==='100')$('v1044Platten').value='100 cm';else $('v1044Platten').value='Nein';if(w.state.base==='sockel'&&!$('v1044Mittel').value)$('v1044Mittel').value='Betonsockel';}const variants=w.v101Variants||[];const sel=$('v1044Preferred');const current=String(Math.min(Math.max(1,(w.v101Current||0)+1),Math.max(1,variants.length)));const old=sel.value||current;sel.innerHTML='';const n=Math.max(1,variants.length);for(let i=1;i<=n;i++){const o=d.createElement('option');o.value=String(i);o.textContent='Variante '+i;sel.appendChild(o);}sel.value=[...sel.options].some(o=>o.value===old)?old:current;const base=(typeof w.v10BaseName==='function'?w.v10BaseName():addr)||'Tamburi_Standort';if(!$('v1044Rendering').value)$('v1044Rendering').value=`${base} - Variante ${sel.value}.jpg`;}
+ panel.addEventListener('focusin',syncAutoFields); setInterval(syncAutoFields,750);
+ // v10.45: GPS sofort nach erfolgreichem Standortabruf in die unteren Felder spiegeln.
+ const locateBtn=d.getElementById('preLocationBtn');
+ if(locateBtn){locateBtn.addEventListener('click',()=>{let tries=0;const timer=setInterval(()=>{syncGPS();syncAutoFields();if(w.lastGeoPosition||++tries>40)clearInterval(timer);},100);});}
+ $('v1044Preferred').addEventListener('change',()=>{const base=(typeof w.v10BaseName==='function'?w.v10BaseName():$('v1044Adresse').value)||'Tamburi_Standort';$('v1044Rendering').value=`${base} - Variante ${$('v1044Preferred').value}.jpg`;});
+ $('v1044Send').onclick=async()=>{syncAutoFields();const btn=$('v1044Send'),st=$('v1044SheetStatus');if(!$('v1044Adresse').value.trim()){st.textContent='Bitte zuerst eine Adresse eintragen.';return;}if(!$('v1044HV').value.trim()){st.textContent='Bitte Genossenschaft / Hausverwaltung eintragen.';return;}const data={adresse:$('v1044Adresse').value.trim(),latitude:$('v1044Lat').value.trim(),longitude:$('v1044Lon').value.trim(),montagebeschreibung:$('v1044Montage').value.trim(),grundmodul:$('v1044Grundmodul').value,erweiterungskaesten:$('v1044Erweiterung').value,montageflaeche:$('v1044Flaeche').value.trim(),besichtigtAm:$('v1044Datum').value,besichtigtVon:$('v1044Besichtiger').value.trim(),montagemittel:$('v1044Mittel').value.trim(),betonplatten:$('v1044Platten').value,beschilderung:$('v1044Schild').value,solar:$('v1044Solar').value,rendering:$('v1044Rendering').value.trim(),hausverwaltung:$('v1044HV').value.trim(),ansprechpartner:$('v1044Kontakt').value.trim(),telefon:$('v1044Tel').value.trim(),email:$('v1044Email').value.trim()};btn.disabled=true;st.textContent='Standort wird an Google Sheet gesendet …';try{await fetch(SHEET_WEBAPP,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(data)});st.textContent=`Gesendet: ${data.adresse} · bevorzugte Variante ${$('v1044Preferred').value}. Bitte im Sheet kontrollieren.`;}catch(e){console.error(e);st.textContent='Senden fehlgeschlagen. Internetverbindung bzw. Apps-Script-Bereitstellung prüfen.';}finally{btn.disabled=false;}};
+ function stateGisDeepLink(state,pos){const lon=Number(pos?.lon),lat=Number(pos?.lat);const has=Number.isFinite(lon)&&Number.isFinite(lat);if(state==='Niederösterreich'&&has)return `https://atlas.noe.gv.at/atlas/portal/noe-atlas?center=${lon.toFixed(6)},${lat.toFixed(6)}&scale=1000`;if(state==='Oberösterreich'&&has)return `https://service.ooe.gv.at/at.gv.ooe.webgis/webgis-portal/default/map/Allgemein/DORIS-Standard?center=${lon.toFixed(6)},${lat.toFixed(6)}&scale=1000`;return w.stateGisUrls?.[state]||'';}
+ const gisBtn=d.getElementById('preStateGisBtn');if(gisBtn)gisBtn.onclick=()=>{const state=w.normalizeGeoState?w.normalizeGeoState(w.lastGeoState):w.lastGeoState;const url=stateGisDeepLink(state,w.lastGeoPosition);if(url)w.open(url,'_blank','noopener');};syncAutoFields();
 }
-
-document.getElementById('app').addEventListener('load',()=>{
- try{injectV1044();}catch(e){console.error('v10.44 konnte nicht geladen werden',e);}
-});
+document.getElementById('app').addEventListener('load',()=>{try{injectV1045();}catch(e){console.error('v10.45 konnte nicht geladen werden',e);}});
 </script>
 </body>
 </html>
