@@ -1,21 +1,16 @@
 // Tamburi AR v10.59 – zwei Aufnahmen bilden genau eine Aufstellvariante
 (function(){
-  function boot(){
-    const frame=document.getElementById('app');
-    if(!frame||!frame.contentDocument)return;
-    const d=frame.contentDocument;
-    const alt=d.getElementById('v10Alternative');
-    if(alt)alt.style.display='none';
-    const count=d.getElementById('v10VariantCount');
-    const badges=d.getElementById('v10VariantBadges');
-    if(!count||!badges)return;
-    function refresh(){
-      const n=badges.querySelectorAll('.v10Badge').length;
-      const complete=Math.floor(n/2), open=n%2;
-      count.textContent=open?`${complete+1} Aufstellvarianten · ${n} Fotos · V${complete+1}: Rendering fehlt`:`${complete} Aufstellvariante${complete===1?'':'n'} · ${n} Fotos`;
-      [...badges.querySelectorAll('.v10Badge')].forEach((b,i)=>{const v=Math.floor(i/2)+1;b.textContent=`V${v} ${i%2===0?'O':'R'}`;b.title=i%2===0?`Variante ${v} – Original`:`Variante ${v} – Rendering`});
-    }
-    new MutationObserver(refresh).observe(badges,{childList:true,subtree:true});refresh();
-  }
-  const frame=document.getElementById('app');if(frame){frame.addEventListener('load',()=>setTimeout(boot,150));setTimeout(boot,600)}
+ const WEBAPP='https://script.google.com/macros/s/AKfycby9N5ZygYPfmUNHYnCaO0lFTsXJ86G0Xq3BEsf8qJv0LD72ckeMOIobFGGMJk2WMK-24g/exec';
+ function boot(){
+  const frame=document.getElementById('app');if(!frame||!frame.contentDocument)return;
+  const d=frame.contentDocument,$=id=>d.getElementById(id);
+  const alt=$('v10Alternative');if(alt)alt.style.display='none';
+  const badges=()=>[...d.querySelectorAll('#v10VariantBadges .v10Badge')];
+  const blobData=blob=>new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=reject;r.readAsDataURL(blob)});
+  async function photoBlob(i){const bs=badges();if(!bs[i])throw new Error(`Foto ${i+1} fehlt.`);bs[i].click();await new Promise(r=>setTimeout(r,90));const src=$('v9ResultImg')?.src;if(!src)throw new Error(`Foto ${i+1} konnte nicht gelesen werden.`);return await (await fetch(src)).blob()}
+  function refresh(){const bs=badges(),n=bs.length,complete=Math.floor(n/2),open=n%2;const count=$('v10VariantCount');if(count)count.textContent=open?`${complete+1} Aufstellvarianten · ${n} Fotos · V${complete+1}: Rendering fehlt`:`${complete} Aufstellvariante${complete===1?'':'n'} · ${n} Fotos`;bs.forEach((b,i)=>{const v=Math.floor(i/2)+1;b.textContent=`V${v} ${i%2===0?'O':'R'}`});const check=$('v1056Check');if(check){if(!n){check.className='v1056warn';check.textContent='⚠ Variante 1: Original aufnehmen.'}else if(open){check.className='v1056warn';check.textContent=`⚠ V${complete+1}: Rendering fehlt – jetzt Foto mit Kasten aufnehmen.`}else{check.className='v1056ok';check.textContent=`✓ ${complete} Aufstellvariante${complete===1?'':'n'} komplett = ${n} Fotos.`}}const pref=$('v1044Preferred');if(pref&&complete){const old=Number(pref.value)||1;pref.innerHTML=Array.from({length:complete},(_,i)=>`<option value="${i+1}">Variante ${i+1}</option>`).join('');pref.value=String(Math.min(old,complete))}}
+  const box=$('v10VariantBadges');if(box)new MutationObserver(()=>setTimeout(refresh,0)).observe(box,{childList:true});setInterval(refresh,350);refresh();
+  const send=$('v1044Send');if(send)send.onclick=async()=>{const st=$('v1044SheetStatus');if(!$('v1044Adresse')?.value.trim()){st.textContent='Bitte zuerst eine Adresse eintragen.';return}const bs=badges();if(!bs.length){st.textContent='Noch keine Aufstellvariante aufgenommen.';return}if(bs.length%2){st.textContent=`V${Math.floor(bs.length/2)+1} ist unvollständig: Rendering fehlt.`;return}const lat=Number(String($('v1044Lat')?.value||'').replace(',','.')),lon=Number(String($('v1044Lon')?.value||'').replace(',','.'));if(!Number.isFinite(lat)||!Number.isFinite(lon)){st.textContent='Bitte gültige GPS-Koordinaten eintragen.';return}send.disabled=true;try{st.textContent='Bildpaare werden vorbereitet …';const active=bs.findIndex(b=>b.classList.contains('active')),variants=[];for(let v=0;v<bs.length/2;v++){const original=await photoBlob(v*2),rendering=await photoBlob(v*2+1);variants.push({originalVariant:v+1,originalBase64:await blobData(original),originalMimeType:original.type||'image/jpeg',renderingBase64:await blobData(rendering),renderingMimeType:rendering.type||'image/jpeg'})}if(active>=0&&badges()[active])badges()[active].click();const fav=Number($('v1044Preferred')?.value||1);variants.sort((a,b)=>(a.originalVariant===fav?-1:b.originalVariant===fav?1:a.originalVariant-b.originalVariant));variants.forEach((x,i)=>{x.position=i+1;x.favorit=i===0});const data={adresse:$('v1044Adresse').value.trim(),latitude:"'"+lat.toFixed(8),longitude:"'"+lon.toFixed(8),montagebeschreibung:$('v1044Montage')?.value.trim()||'',grundmodul:$('v1044Grundmodul')?.value||'1',erweiterungskaesten:$('v1044Erweiterung')?.value||'0',montageflaeche:$('v1044Flaeche')?.value.trim()||'',besichtigtAm:$('v1044Datum')?.value||'',besichtigtVon:$('v1044Besichtiger')?.value.trim()||'Josef Röhrich',montagemittel:$('v1044Mittel')?.value||'',betonplatten:$('v1044Platten')?.value||'Nein',beschilderung:$('v1044Schild')?.value||'Nein',solar:$('v1044Solar')?.value||'Nein',bevorzugteVariante:String(fav),varianten};let target=$('v1059PostTarget');if(!target){target=d.createElement('iframe');target.id='v1059PostTarget';target.name='v1059PostTarget';target.style.display='none';d.body.appendChild(target)}const f=d.createElement('form');f.method='POST';f.action=WEBAPP;f.target='v1059PostTarget';f.style.display='none';const inp=d.createElement('input');inp.type='hidden';inp.name='payload';inp.value=JSON.stringify(data);f.appendChild(inp);d.body.appendChild(f);f.submit();setTimeout(()=>f.remove(),1500);st.textContent=`Übertragung gestartet: ${variants.length} Aufstellvarianten = ${variants.length*2} Fotos.`}catch(e){st.textContent='Senden fehlgeschlagen: '+(e.message||e)}finally{send.disabled=false}};
+ }
+ const frame=document.getElementById('app');if(frame){frame.addEventListener('load',()=>setTimeout(boot,250));setTimeout(boot,800)}
 })();
