@@ -1,45 +1,28 @@
 <!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tamburi v10.61 – 3D Modelltest</title>
-<style>
-html,body{margin:0;height:100%;font-family:system-ui;background:#e9edf0;color:#222}#info{position:fixed;z-index:2;top:12px;left:12px;background:#fffD;padding:10px 14px;border-radius:12px;box-shadow:0 3px 16px #0002}b{color:#f04b16}canvas{display:block}
-</style>
-</head><body><div id="info"><b>Tamburi v10.61 TEST</b><br>Grundmodul 100 × 65 × 225 cm<br>Mit Maus/Finger drehen · zoomen</div>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Tamburi v10.62 – 3D Modelltest</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui;background:#e9edf0;color:#222;touch-action:none}#info{position:fixed;z-index:5;top:12px;left:12px;background:#ffffffe8;padding:10px 14px;border-radius:12px;box-shadow:0 3px 16px #0002;pointer-events:none}#info b{color:#f04b16}#err{display:none;position:fixed;z-index:10;left:16px;right:16px;top:145px;padding:14px;background:#fff3f0;border:2px solid #f04b16;border-radius:12px;color:#8a2608}canvas{display:block;width:100%;height:100%}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script></head>
+<body><div id="info"><b>Tamburi v10.62 TEST</b><br>Grundmodul 100 × 65 × 225 cm<br>Mit Finger drehen · zoomen</div><div id="err"></div>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
-import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js';
+const err=document.getElementById('err');function fail(e){err.style.display='block';err.textContent='3D konnte nicht gestartet werden: '+(e?.message||e);console.error(e)}
+try{
+const THREE=await import('three');const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
+if(!window.WebGLRenderingContext)throw new Error('WebGL wird von diesem Browser nicht unterstützt.');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xe9edf0);
-const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.01,100);camera.position.set(3.2,2.25,4.2);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;document.body.appendChild(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1.12,0);controls.enableDamping=true;
-scene.add(new THREE.HemisphereLight(0xffffff,0x66717a,2.2));const sun=new THREE.DirectionalLight(0xffffff,2.4);sun.position.set(3,5,4);sun.castShadow=true;scene.add(sun);
+const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,.01,100);camera.position.set(3.0,2.15,4.0);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1.15,0);controls.enableDamping=true;controls.minDistance=2;controls.maxDistance=8;
+scene.add(new THREE.HemisphereLight(0xffffff,0x657078,2.3));const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(3,5,4);sun.castShadow=true;scene.add(sun);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0xc9cdd0,roughness:.95}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-const box=new THREE.Group();scene.add(box);
-const light=new THREE.MeshStandardMaterial({color:0xdde2df,roughness:.55,metalness:.18});const dark=new THREE.MeshStandardMaterial({color:0x22282a,roughness:.5});const orange=new THREE.MeshStandardMaterial({color:0xff4b12,roughness:.55});
+const box=new THREE.Group();scene.add(box);const light=new THREE.MeshStandardMaterial({color:0xdde2df,roughness:.55,metalness:.15}),dark=new THREE.MeshStandardMaterial({color:0x252b2d,roughness:.5}),orange=new THREE.MeshStandardMaterial({color:0xff4b12,roughness:.55}),lineMat=new THREE.MeshStandardMaterial({color:0x707977,roughness:.7});
 function cube(w,h,d,x,y,z,mat=light){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;box.add(m);return m}
-// Body dimensions in metres: 1.00 × .65 × 2.25
-cube(1,2.25,.65,0,1.125,0);cube(1.04,.055,.69,0,2.215,0);cube(1.02,.045,.67,0,.035,0);
-// front orange brand stripe
-cube(.994,.15,.012,0,1.79,.331,orange);
-// compartment seams based on photographed 23-door base unit
-const z=.337;const xL=-.245,xR=.245;const lineMat=new THREE.MeshStandardMaterial({color:0x7c8583,roughness:.7});
-function seam(x,y,w){cube(w,.008,.009,x,y,z,lineMat)}
-[1.62,1.52,1.42,1.32,1.12,.91,.70,.49,.28].forEach(y=>seam(-.245,y,.49));
-[1.62,1.52,1.42,1.32,1.22,1.12,.91,.70,.49,.28].forEach(y=>seam(.245,y,.49));
-cube(.008,.89,.01,0,1.005,z,lineMat);cube(.008,.2,.01,-.245,1.22,z,lineMat);
-// control panel
-cube(.34,.15,.018,-.245,1.02,.346,new THREE.MeshStandardMaterial({color:0xf5f6f3,roughness:.4}));cube(.18,.075,.012,-.255,1.025,.358,dark);cube(.028,.028,.014,-.385,1.025,.36,dark);
-// solar panel + supports
-cube(.72,.035,.45,0,2.32,-.02,dark).rotation.x=-.13;cube(.78,.025,.49,0,2.345,-.02,new THREE.MeshStandardMaterial({color:0x34434a,metalness:.35,roughness:.35})).rotation.x=-.13;cube(.035,.12,.035,-.31,2.27,0,light);cube(.035,.12,.035,.31,2.27,0,light);
-// side orange stripes
-cube(.012,.15,.64,-.506,1.79,0,orange);cube(.012,.15,.64,.506,1.79,0,orange);
-// canvas labels
-function label(text,w=512,h=128,fg='#fff',bg='transparent',font=58){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');if(bg!=='transparent'){g.fillStyle=bg;g.fillRect(0,0,w,h)}g.fillStyle=fg;g.font=`700 ${font}px Arial`;g.textAlign='center';g.textBaseline='middle';g.fillText(text,w/2,h/2);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return new THREE.MeshBasicMaterial({map:t,transparent:true})}
-function frontText(text,x,y,w,h,fg='#fff',font=58){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),label(text,512,128,fg,'transparent',font));m.position.set(x,y,.344);box.add(m)}
-frontText('tamburi',-.23,1.79,.48,.12,'#fff',62);frontText('Mein Name ist\nALVA',.25,2.08,.42,.10,'#f04b16',35);frontText('PAKETE.',.25,1.48,.36,.07,'#f04b16',46);frontText('VERSENDEN.',.25,1.38,.43,.07,'#f04b16',42);frontText('EMPFANGEN.',.25,1.28,.45,.07,'#f04b16',42);
-function sideText(side){const group=new THREE.Group();const stripe=new THREE.Mesh(new THREE.PlaneGeometry(.54,.12),label('tamburi',512,128,'#fff','transparent',62));stripe.position.set(side*.507,1.79,0);stripe.rotation.y=side>0?Math.PI/2:-Math.PI/2;group.add(stripe);['PAKETE.','VERSENDEN.','EMPFANGEN.'].forEach((t,i)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(.43,.07),label(t,512,128,'#f04b16','transparent',42));m.position.set(side*.508,1.48-i*.16,.05);m.rotation.y=side>0?Math.PI/2:-Math.PI/2;group.add(m)});scene.add(group)}sideText(-1);sideText(1);
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-(function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)})();
+cube(1,2.25,.65,0,1.125,0);cube(1.04,.055,.69,0,2.215,0);cube(1.02,.045,.67,0,.035,0);cube(.994,.15,.012,0,1.79,.331,orange);
+const z=.337;function seam(x,y,w){cube(w,.008,.009,x,y,z,lineMat)}[-.245,.245].forEach(x=>[1.62,1.52,1.42,1.32,1.12,.91,.70,.49,.28].forEach(y=>seam(x,y,.49)));seam(.245,1.22,.49);cube(.008,.89,.01,0,1.005,z,lineMat);cube(.008,.2,.01,-.245,1.22,z,lineMat);
+cube(.34,.15,.018,-.245,1.02,.346,new THREE.MeshStandardMaterial({color:0xf5f6f3}));cube(.18,.075,.012,-.255,1.025,.358,dark);cube(.028,.028,.014,-.385,1.025,.36,dark);
+const solar=cube(.78,.035,.49,0,2.34,-.02,new THREE.MeshStandardMaterial({color:0x34434a,metalness:.35,roughness:.35}));solar.rotation.x=-.13;cube(.035,.12,.035,-.31,2.27,0);cube(.035,.12,.035,.31,2.27,0);cube(.012,.15,.64,-.506,1.79,0,orange);cube(.012,.15,.64,.506,1.79,0,orange);
+function label(text,fg='#fff',font=58){const c=document.createElement('canvas');c.width=512;c.height=128;const g=c.getContext('2d');g.fillStyle=fg;g.font=`700 ${font}px Arial`;g.textAlign='center';g.textBaseline='middle';const lines=text.split('\n');lines.forEach((s,i)=>g.fillText(s,256,64+(i-(lines.length-1)/2)*45));const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false})}
+function text(text,x,y,w,h,fg='#fff',font=58){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),label(text,fg,font));m.position.set(x,y,.3445);box.add(m)}text('tamburi',-.23,1.79,.48,.12);text('Mein Name ist\nALVA',.25,2.08,.42,.12,'#f04b16',34);text('PAKETE.',.25,1.48,.36,.07,'#f04b16',46);text('VERSENDEN.',.25,1.38,.43,.07,'#f04b16',42);text('EMPFANGEN.',.25,1.28,.45,.07,'#f04b16',42);
+function sideText(side){['tamburi','PAKETE.','VERSENDEN.','EMPFANGEN.'].forEach((t,i)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(i? .43:.52,i?.07:.12),label(t,i?'#f04b16':'#fff',i?42:58));m.position.set(side*.507,i?1.48-(i-1)*.16:1.79,.03);m.rotation.y=side>0?Math.PI/2:-Math.PI/2;scene.add(m)})}sideText(-1);sideText(1);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera)});
+}catch(e){fail(e)}
 </script></body></html>
