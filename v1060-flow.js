@@ -1,4 +1,4 @@
-// Tamburi AR v10.60 – eine Datenquelle fuer Original/Rendering-Paare
+// Tamburi AR Foto-Paar-/Sheet-Flow – v10.87: bestehende App-Version nicht überschreiben
 (function(){
  const WEBAPP='https://script.google.com/macros/s/AKfycby9N5ZygYPfmUNHYnCaO0lFTsXJ86G0Xq3BEsf8qJv0LD72ckeMOIobFGGMJk2WMK-24g/exec';
  let photos=[];
@@ -6,7 +6,6 @@
  const badges=d=>[...d.querySelectorAll('#v10VariantBadges .v10Badge')];
  function boot(){
   const f=document.getElementById('app'),d=f?.contentDocument;if(!d)return;
-  const v=d.querySelector('header h1 span');if(v)v.textContent='v10.60';d.title='Tamburi Standort AR v10.60';
   const alt=d.getElementById('v10Alternative');if(alt)alt.style.display='none';
   const send=d.getElementById('v1044Send');if(send){send.onclick=null;send.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();sendData(d)},true)}
   const confirm=d.getElementById('v98Confirm');if(confirm)confirm.addEventListener('click',()=>setTimeout(()=>{const bs=badges(d);const i=bs.length-1;if(i>=0){bs[i].click();setTimeout(async()=>{const src=d.getElementById('v9ResultImg')?.src;if(src){try{photos[i]=await (await fetch(src)).blob()}catch(e){} render(d)}},60)}},100),true);
