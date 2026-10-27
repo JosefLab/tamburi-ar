@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Tamburi AR base v10.94: upload save fix + background-only fit/enhancement -->
+<!-- Tamburi AR base v10.95: camera direct; upload-only enhancement/fit -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -1554,7 +1554,14 @@ function v9Close(){
  if(v9Stream){v9Stream.getTracks().forEach(t=>t.stop());v9Stream=null}
  v9Video.srcObject=null;v9Camera.classList.remove('active');document.body.style.overflow='';
 }
-photoModeBtn.onclick=v9Start;
+photoModeBtn.onclick=async()=>{
+ // v10.95: Kamera bleibt ein eigener, direkter Workflow. Upload-Optimierung gilt hier nicht.
+ v1016AcceptedPlacement=null;
+ v1094BgScale=1;v1094Enhanced=false;
+ importedPhoto.style.filter='none';
+ importedPhoto.style.removeProperty('transform');
+ await v9Start();
+};
 v9Back.onclick=v9Close;
 
 v9Camera.addEventListener('touchstart',e=>{
