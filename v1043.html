@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Tamburi AR base v10.94: upload save fix + background-only fit/enhancement -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -276,8 +277,10 @@ h1{font-size:20px;letter-spacing:-.25px}
  overflow:hidden;background:#000;z-index:1;
 }
 #v1014UploadBg{
- position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:0
+ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:0;
+ transform-origin:center center
 }
+#stage.mobilePhotoLoaded #importedPhoto{transform-origin:center center!important}
 #v1014UploadModel{
  position:absolute;inset:0;width:100%;height:100%;z-index:2;background:transparent!important;
  --poster-color:transparent!important;pointer-events:none;touch-action:none
@@ -549,7 +552,7 @@ body.noLockerMode #desktopScale{
   <span class="heroIcon">🖼️</span>
   <span><strong>Foto / Screenshot</strong><small>Vorhandenes Bild bearbeiten</small></span>
   <span class="heroArrow">›</span>
-  <input id="photoUpload" type="file" accept="image/jpeg,image/png,image/webp,.heic,.heif" style="display:none">
+  <input id="photoUpload" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" style="display:none">
 </label>
     <button class="action" id="stopPhotoBtn" style="display:none">Fotomodus beenden</button>
   </div>
@@ -603,7 +606,7 @@ body.noLockerMode #desktopScale{
   <div class="label">Desktop-Werkzeuge</div>
   <div class="row">
     <label class="action" style="cursor:pointer">🖼️ Foto/Screenshot laden
-      <input id="desktopPhotoUpload" type="file" accept="image/jpeg,image/png,image/webp,.heic,.heif" style="display:none">
+      <input id="desktopPhotoUpload" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" style="display:none">
     </label>
     <button class="action capture" id="desktopSaveBtn">Bild speichern</button>
   </div>
@@ -1346,9 +1349,13 @@ captureBtn.onclick=async()=>{
      if(!iw || !ih) throw new Error('Hintergrundbild hat keine gültige Größe');
 
      const fit=Math.min(W/iw,H/ih);
-     const bgW=iw*fit;
-     const bgH=ih*fit;
+     const bgScale=(v1016AcceptedPlacement?.bgScale)||v1094BgScale||1;
+     const bgW=iw*fit*bgScale;
+     const bgH=ih*fit*bgScale;
+     ctx.save();
+     if((v1016AcceptedPlacement?.enhanced ?? v1094Enhanced)) ctx.filter='brightness(1.06) contrast(1.06) saturate(1.04)';
      ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
+     ctx.restore();
    }else{
      const vw=camera.videoWidth||1920;
      const vh=camera.videoHeight||1080;
@@ -1415,6 +1422,8 @@ captureBtn.onclick=async()=>{
 
      const cx=W/2 + W*(xPct/100);
      const cy=H/2 + H*(yPct/100);
+     const drawX=cx-drawW/2;
+     const drawY=cy-drawH/2;
      ctx.drawImage(bmp,drawX,drawY,drawW,drawH);
      bmp.close?.();
    }
@@ -2124,6 +2133,14 @@ if(preStateGisBtn) preStateGisBtn.onclick=()=>{
 
   <div id="v1014Hint">4:3 = späteres Foto · <span class="v1024-mobile-hint-text">1 Finger: verschieben · 2 Finger: Größe</span></div>
 
+  <div id="v1094PhotoTools" style="position:absolute;left:12px;right:12px;bottom:76px;z-index:6;background:#000b;color:#fff;padding:9px 11px;border-radius:12px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;white-space:nowrap">Hintergrund</span>
+      <input id="v1094BgZoom" type="range" min="60" max="140" value="100" style="flex:1">
+      <span id="v1094BgZoomVal" style="font-size:12px;width:42px">100%</span>
+      <button class="v1014Btn active" id="v1094Enhance" type="button">✨ Auto</button>
+    </div>
+  </div>
   <div id="v1014Bottom">
     <button class="v1014Confirm" id="v1014Use">✓ Übernehmen</button>
   </div>
@@ -2143,7 +2160,21 @@ const v1014Use=document.getElementById('v1014Use');
 const v1014Hint=document.getElementById('v1014Hint');
 const v1016Frame=document.getElementById('v1016Frame');
 let v1016AcceptedPlacement=null;
-
+const v1094BgZoom=document.getElementById('v1094BgZoom');
+const v1094BgZoomVal=document.getElementById('v1094BgZoomVal');
+const v1094Enhance=document.getElementById('v1094Enhance');
+let v1094BgScale=1,v1094Enhanced=true;
+function v1094ApplyBg(){
+ const filter=v1094Enhanced?'brightness(1.06) contrast(1.06) saturate(1.04)':'none';
+ v1014Bg.style.transform='scale('+v1094BgScale+')';
+ v1014Bg.style.filter=filter;
+ importedPhoto.style.setProperty('transform','scale('+v1094BgScale+')','important');
+ importedPhoto.style.filter=filter;
+ if(v1094BgZoomVal)v1094BgZoomVal.textContent=Math.round(v1094BgScale*100)+'%';
+ if(v1094Enhance)v1094Enhance.classList.toggle('active',v1094Enhanced);
+}
+v1094BgZoom.oninput=()=>{v1094BgScale=Number(v1094BgZoom.value)/100;v1094ApplyBg()};
+v1094Enhance.onclick=()=>{v1094Enhanced=!v1094Enhanced;v1094ApplyBg()};
 
 let v1014Mode='move',v1014X=0,v1014Y=0,v1014S=1,v1014Yaw=0,v1014Pitch=75,v1014Gesture=null;
 
@@ -2174,7 +2205,9 @@ function v1014Mid(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/
 function v1014OpenFromImported(){
  if(!importedPhotoMode || !importedPhoto.src)return;
  v1016AcceptedPlacement=null;
+ v1094BgScale=1;v1094Enhanced=true;v1094BgZoom.value=100;
  v1014Bg.src=importedPhoto.src;
+ v1094ApplyBg();
  if(state.count===0){
    v1014Model.removeAttribute('src');
    v1014Model.style.visibility='hidden';
@@ -2250,7 +2283,9 @@ v1014Use.onclick=async()=>{
    yNorm:v1014Y/rect.height,
    scale:v1014S,
    yaw:v1014Yaw,
-   pitch:v1014Pitch
+   pitch:v1014Pitch,
+   bgScale:v1094BgScale,
+   enhanced:v1094Enhanced
  };
 
  scale.value=Math.round(v1014S*100);
@@ -2265,8 +2300,9 @@ v1014Use.onclick=async()=>{
 
  applyTransform();
  applyImportedOrbit();
+ v1094ApplyBg();
 
- status.textContent='Vollbild-Position übernommen – Vorschau und Export sind jetzt identisch 4:3.';
+ status.textContent='Vollbild-Position übernommen – Hintergrund und Rendering bleiben getrennt positioniert.';
 };
 
 // On mobile, uploaded photos now open directly in fullscreen.
