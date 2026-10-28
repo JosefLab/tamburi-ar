@@ -2,7 +2,7 @@
 
 **Projekt:** Tamburi AR / Standortbesichtigung  
 **Repository:** `JosefLab/tamburi-ar`  
-**Produktiver Stand bei Übergabe:** **v10.93**  
+**Produktiver Stand bei Übergabe:** **v10.95**  
 **Übergabe an:** Alex (IT)  
 **Stand:** 01.10.2026
 
@@ -31,7 +31,7 @@ Die Anwendung wird derzeit über GitHub Pages bereitgestellt.
 
 ## 2. Aktueller stabiler Stand
 
-Der für die Übergabe maßgebliche produktive Stand ist **v10.93**.
+Der für die Übergabe maßgebliche produktive Stand ist **v10.95**.
 
 Wichtig: v10.94 war ein kurzfristiger Versuch, seitliche Standfüße/Standbleche in das neue prozedurale 3D-Modell zu übernehmen. Diese Umsetzung entsprach optisch nicht dem Original und wurde vollständig zurückgerollt. Die Standfüße sind daher bewusst ein offener Punkt.
 
@@ -305,7 +305,7 @@ Die Funktion hängt von der Browserunterstützung und Mikrofonberechtigung ab.
 
 ## 12. „Professionell formulieren“
 
-Seit v10.93 existiert die Schaltfläche:
+Seit v10.95 existiert die Schaltfläche:
 
 **✨ Professionell formulieren**
 
@@ -422,7 +422,7 @@ Wichtiger Stabilitätsstand:
 - Spracheingabe
 - Fotoauslöser im Querformat rechts
 
-### v10.93
+### v10.95
 
 - lokale Funktion „Professionell formulieren“
 - keine externe KI/API
@@ -460,7 +460,7 @@ Das Projekt ist historisch gewachsen. Ein sauberer technischer Neuaufbau kann si
 
 Empfohlene Vorgehensweise:
 
-1. aktuellen v10.93-Stand als funktionierende Referenz sichern
+1. aktuellen v10.95-Stand als funktionierende Referenz sichern
 2. bestehenden Foto-/Rendering-Workflow vollständig dokumentieren/testen
 3. State-Management zentralisieren
 4. Modellgenerierung in ein klar abgegrenztes Modul überführen
@@ -553,4 +553,87 @@ Insbesondere Kamera, 3D-Modell, Foto-Paarung und Datenübertragung sollten nicht
 
 Diese Dokumentation dient als technischer Einstieg für **Alex** und soll ihm ermöglichen, die bisherige Entwicklung schneller nachzuvollziehen.
 
-Bei Unklarheiten sollte der bestehende v10.93-Stand als Referenz für das gewünschte Verhalten verwendet werden.
+Bei Unklarheiten sollte der bestehende v10.95-Stand als Referenz für das gewünschte Verhalten verwendet werden.
+
+
+---
+
+## 24. Übergabe-Update – produktiver Stand v10.95 (28.10.2026)
+
+Dieses Kapitel hat bei Widersprüchen mit älteren Kapiteln Vorrang. Die Anwendung auf `main` ist aktuell **v10.95**.
+
+### Produktive Dateien
+
+- `index.html` – produktiver Einstiegspunkt, v10.95; lädt `v1043.html?v=1095`.
+- `v1043.html` – historisch gewachsene Basis mit Kamera, Upload, 4:3-Capture, Desktopfunktionen und mehreren model-viewer-Instanzen.
+- `v1086-models.js` – maßgebliche prozedurale 3D-Geometrie. Der interne Kommentar nennt noch v10.92, weil die Geometrie seitdem absichtlich unverändert blieb.
+- `v1060-flow.js` – aktueller Foto-Paar-/Google-Sheet-Flow. Seine interne technische Versionsangabe ist nicht die sichtbare App-Version.
+- `desktop.html` – separate Desktop-Light-Oberfläche, aktuell v1.3.
+- `v1061-model-test.html` – Entwicklungs-/Testseite, nicht produktiver Einstieg.
+
+Legacy/Referenz:
+- `v1059-flow.js` nicht parallel zum aktuellen Flow laden.
+- `v1057-reset.js` ist ein deaktivierter Legacy-Platzhalter.
+- statische `*.glb` sind überwiegend Referenz; die aktuelle Modellgeometrie wird aus `v1086-models.js` erzeugt.
+- `README.txt` ist historisch auf v10.38 stehen geblieben. Für die Übergabe ist dieses Dokument maßgeblich.
+
+### v10.94 – Upload-Verbesserungen
+
+- mobile Dateiauswahl für Galerie/Dateien/Downloads erweitert
+- Speicherfehler bei hochgeladenen Fotos behoben
+- optionale automatische Bildverbesserung für Upload-Fotos
+- Hintergrundfoto separat innerhalb der 4:3-Ausgabe zoombar/einpassbar
+- Hintergrundtransformation und 3D-Rendering sind getrennt
+
+Wichtig: Ein früherer, wieder zurückgerollter Standblech-Versuch trug ebenfalls kurz die Bezeichnung v10.94. Die vereinfachten Standbleche gehören **nicht** zum produktiven Stand.
+
+### v10.95 – aktueller Stand
+
+Kamera und Upload sind ausdrücklich getrennte Workflows:
+
+**Kamera/Fotomodus**
+- Antippen muss direkt die Kamera öffnen.
+- Keine Qualitäts-, Upgrade- oder Hintergrund-Zoom-Abfrage vor dem Kamerastart.
+- Bestehende Positionierung und 4:3-Aufnahme bleiben erhalten.
+
+**Foto hochladen**
+- Bilder können aus Galerie bzw. mobiler Datei-/Download-Auswahl übernommen werden.
+- automatische Qualitätsverbesserung ist optional verfügbar.
+- Hintergrund kann separat gezoomt/eingepasst werden.
+- Änderungen am Hintergrund dürfen Position, Größe oder Perspektive des 3D-Kastens **nicht** verändern.
+- Export bleibt 1024 × 768 px / 4:3.
+
+Ein konkreter v10.94-Fix im mobilen Upload-Export ergänzte fehlende `drawX`/`drawY`-Berechnungen beim Zeichnen des Modell-Snapshots. Das war die Ursache dafür, dass der Kameraweg speichern konnte, der Uploadweg aber fehlschlug.
+
+### Aktuell offene Punkte
+
+- korrekte seitliche Standfüße/Standbleche im prozeduralen Modell; nicht erneut als einfache Rechtecke nachbauen
+- OneDrive-Übergabe
+- Standortdokumentation weiter ausbauen, insbesondere Genossenschaft/Hausverwaltung
+- GPS/Adresse dauerhaft sauber mitführen; automatisch ermittelte Adresse muss editierbar bleiben
+- weitere fachliche Dokumentations-/Exportfunktionen nach Bedarf
+
+Bereits umgesetzt und nicht mehr als offen behandeln:
+- Standortabruf vor der Fotoaufnahme
+- Reset im Kameramodus für Position/Größe/Schwenkung
+- Upload-Hintergrundoptimierung/-Zoom
+- getrennte Kamera- und Upload-Workflows
+
+### Unverhandelbare Regressionstests
+
+1. Kamera startet direkt.
+2. Upload-Optimierung erscheint nur beim Upload, nicht vor der Kamera.
+3. Hintergrund-Zoom verschiebt das Rendering nicht.
+4. Gespeichertes Bild entspricht der sichtbaren 4:3-Komposition.
+5. Stark verkleinerter Kasten darf beim Speichern nicht springen.
+6. Original-/Rendering-Paare bleiben korrekt zugeordnet.
+7. 1/2/3 Kästen sowie Normal, 50 cm, 100 cm und Betonsockel funktionieren.
+8. Upload-Rendering lässt sich als 1024 × 768 speichern.
+9. Kamera öffnen/schließen, Hoch-/Querformat und Reload/Cache-Buster testen.
+10. Google-Sheet-Übertragung nur mit vollständigen Varianten testen.
+
+### Empfehlung für Alex / externen Entwickler
+
+Vor einem Refactoring den aktuellen `main`-Stand über GitHub Pages vollständig gegen die Testcheckliste prüfen und einen stabilen Tag/Release setzen. Danach Refactoring in einem separaten Branch durchführen. Funktionale Erweiterungen und strukturellen Neuaufbau nicht gleichzeitig durchführen.
+
+Die unterschiedlichen internen Versionsnummern in älteren Dateien sind historisch bedingt. Maßgeblich für den aktuellen Produktstand ist `index.html` mit **v10.95**.
