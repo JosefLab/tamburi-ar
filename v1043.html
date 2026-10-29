@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Tamburi AR base v10.96: camera direct; Auto enhancement in camera review + upload -->
+<!-- Tamburi AR base v10.97: camera Auto preview toggle fixed + centered review controls -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -1467,9 +1467,9 @@ captureBtn.onclick=async()=>{
  <div id="v98Review">
    <img id="v98ReviewImg" alt="Foto Vorschau">
    <div id="v98ReviewText">Foto prüfen</div>
-   <button id="v1096CameraAuto" type="button" class="v9Btn activeMode" style="position:absolute;left:12px;bottom:22px;z-index:23">✨ Auto</button>
    <div id="v98ReviewActions">
      <button id="v98Retake" class="v98ReviewBtn" aria-label="Neues Foto">×</button>
+     <button id="v1096CameraAuto" type="button" class="v9Btn activeMode" aria-pressed="true" style="min-width:92px;height:48px">✨ Auto</button>
      <button id="v98Confirm" class="v98ReviewBtn" aria-label="Foto übernehmen">✓</button>
    </div>
  </div>
@@ -1491,17 +1491,27 @@ const v98Confirm=document.getElementById('v98Confirm');
 let v98PendingBlob=null,v98PendingUrl=null;
 const v1096CameraAuto=document.getElementById("v1096CameraAuto");
 let v1096CameraEnhanced=true,v1096CameraOriginalBlob=null;
-function v1096SetCameraAutoUi(){if(v1096CameraAuto)v1096CameraAuto.classList.toggle("activeMode",v1096CameraEnhanced)}
-async function v1096EnhanceCameraBlob(blob){
- const bmp=await createImageBitmap(blob);const cv=document.createElement("canvas");cv.width=1024;cv.height=768;
- const cx=cv.getContext("2d");cx.filter="brightness(1.06) contrast(1.06) saturate(1.04)";cx.drawImage(bmp,0,0,1024,768);
- if(bmp.close)bmp.close();return await new Promise((resolve,reject)=>cv.toBlob(b=>b?resolve(b):reject(new Error("Auto-Anpassung fehlgeschlagen")),"image/jpeg",0.94));
+function v1097SetCameraAutoUi(){
+ if(!v1096CameraAuto)return;
+ v1096CameraAuto.classList.toggle("activeMode",v1096CameraEnhanced);
+ v1096CameraAuto.setAttribute("aria-pressed",String(v1096CameraEnhanced));
+ v1096CameraAuto.textContent=v1096CameraEnhanced?"✨ Auto AN":"✨ Auto AUS";
+ if(v98ReviewImg)v98ReviewImg.style.filter=v1096CameraEnhanced?"brightness(1.06) contrast(1.06) saturate(1.04)":"none";
 }
-async function v1096RefreshCameraPreview(){
- if(!v1096CameraOriginalBlob)return;const shown=v1096CameraEnhanced?await v1096EnhanceCameraBlob(v1096CameraOriginalBlob):v1096CameraOriginalBlob;
- v98PendingBlob=shown;if(v98PendingUrl)URL.revokeObjectURL(v98PendingUrl);v98PendingUrl=URL.createObjectURL(shown);v98ReviewImg.src=v98PendingUrl;v1096SetCameraAutoUi();
+async function v1097EnhanceCameraBlob(blob){
+ const bmp=await createImageBitmap(blob),cv=document.createElement("canvas");
+ cv.width=1024;cv.height=768;
+ const cx=cv.getContext("2d");
+ cx.filter="brightness(1.06) contrast(1.06) saturate(1.04)";
+ cx.drawImage(bmp,0,0,1024,768);
+ if(bmp.close)bmp.close();
+ return await new Promise((resolve,reject)=>cv.toBlob(b=>b?resolve(b):reject(new Error("Auto-Anpassung fehlgeschlagen")),"image/jpeg",0.95));
 }
-if(v1096CameraAuto)v1096CameraAuto.onclick=async()=>{v1096CameraEnhanced=!v1096CameraEnhanced;await v1096RefreshCameraPreview()};
+if(v1096CameraAuto)v1096CameraAuto.onclick=e=>{
+ e.preventDefault();e.stopPropagation();
+ v1096CameraEnhanced=!v1096CameraEnhanced;
+ v1097SetCameraAutoUi();
+};
 
 let v9Stream=null,v9X=0,v9Y=0,v9S=1,v9Gesture=null,v9Blob=null,v9Mode='move',v9Yaw=0,v9Pitch=75;
 function v99ResetPosition(){
@@ -1569,7 +1579,7 @@ function v9Close(){
  v9Video.srcObject=null;v9Camera.classList.remove('active');document.body.style.overflow='';
 }
 photoModeBtn.onclick=async()=>{
- // v10.96: Kamera startet weiterhin direkt; Auto-Anpassung erfolgt erst in der Foto-Prüfung.
+ // v10.97: Kamera startet direkt; Auto ist in der Foto-Prüfung sichtbar schaltbar.
  v1016AcceptedPlacement=null;
  v1094BgScale=1;v1094Enhanced=false;
  v1096CameraEnhanced=true;v1096CameraOriginalBlob=null;
@@ -1685,6 +1695,9 @@ v9Shutter.onclick=async()=>{
   }
 
   v98PendingBlob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.95));
+  v1096CameraOriginalBlob=v98PendingBlob;
+  v1096CameraEnhanced=true;
+  v1097SetCameraAutoUi();
   if(v98PendingUrl)URL.revokeObjectURL(v98PendingUrl);
   v98PendingUrl=URL.createObjectURL(v98PendingBlob);
   v98ReviewImg.src=v98PendingUrl;
@@ -1701,17 +1714,19 @@ v98Retake.onclick=()=>{
  v98Review.classList.remove('active');
  if(v98PendingUrl){URL.revokeObjectURL(v98PendingUrl);v98PendingUrl=null;}
  v98ReviewImg.removeAttribute('src');
+ v98ReviewImg.style.filter='none';
  v98PendingBlob=null;
  v1096CameraOriginalBlob=null;
 };
 
-v98Confirm.onclick=()=>{
+v98Confirm.onclick=async()=>{
  if(!v98PendingBlob)return;
 
- const acceptedBlob=v98PendingBlob;
+ const acceptedBlob=v1096CameraEnhanced && v1096CameraOriginalBlob ? await v1097EnhanceCameraBlob(v1096CameraOriginalBlob) : (v1096CameraOriginalBlob||v98PendingBlob);
  v98Review.classList.remove('active');
  if(v98PendingUrl){URL.revokeObjectURL(v98PendingUrl);v98PendingUrl=null;}
  v98ReviewImg.removeAttribute('src');
+ v98ReviewImg.style.filter='none';
  v98PendingBlob=null;
  v1096CameraOriginalBlob=null;
 
